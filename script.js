@@ -6,24 +6,38 @@ let connected = false;
 let demoMode = false;
 let darkMode = false;
 
-let eegData = [], alphaData = [], betaData = [], emgData = [];
+// ===== TIME WINDOW SETTINGS =====
+let sampleRate = 10; // samples per second (demo)
+let windowSeconds = 10;
+let maxPoints = sampleRate * windowSeconds;
 
-let t = 0;
+// ===== DATA =====
+let eegData = [], alphaData = [], betaData = [], emgData = [];
+let labels = [];
+
+// ===== DEMO STATE =====
 let currentEmotion = "Calm";
-let demoCounter = 0;
 
 // =======================
-// CHART SETUP
+// CHART SETUP (CLEAN STYLE)
 // =======================
 const eegChart = new Chart(document.getElementById("eegChart"), {
   type: "line",
   data: {
     labels: [],
     datasets: [
-      { label: "Raw EEG", data: [] },
-      { label: "Alpha", data: [] },
-      { label: "Beta", data: [] }
+      { label: "Raw EEG", data: [], borderWidth: 2, pointRadius: 0 },
+      { label: "Alpha", data: [], borderWidth: 2, pointRadius: 0 },
+      { label: "Beta", data: [], borderWidth: 2, pointRadius: 0 }
     ]
+  },
+  options: {
+    animation: false,
+    responsive: true,
+    scales: {
+      x: { display: false },
+      y: { beginAtZero: true }
+    }
   }
 });
 
@@ -31,7 +45,17 @@ const emgChart = new Chart(document.getElementById("emgChart"), {
   type: "line",
   data: {
     labels: [],
-    datasets: [{ label: "EMG", data: [] }]
+    datasets: [
+      { label: "EMG", data: [], borderWidth: 2, pointRadius: 0 }
+    ]
+  },
+  options: {
+    animation: false,
+    responsive: true,
+    scales: {
+      x: { display: false },
+      y: { beginAtZero: true }
+    }
   }
 });
 
@@ -59,7 +83,12 @@ async function connect() {
     const value = new TextDecoder().decode(event.target.value);
     const [rawEEG, alpha, beta, emg] = value.split(",");
 
-    updateData(Number(rawEEG), Number(alpha), Number(beta), Number(emg));
+    updateData(
+      Number(rawEEG),
+      Number(alpha),
+      Number(beta),
+      Number(emg)
+    );
   });
 }
 
@@ -70,61 +99,89 @@ function disconnect() {
   connected = false;
   demoMode = false;
   document.getElementById("status").innerText = "Disconnected";
-
-  const btn = document.querySelectorAll("button")[2];
-  btn.innerText = "Demo Mode";
 }
 
 // =======================
-// DEMO MODE
+// DEMO MODE (REALISTIC NOISE)
 // =======================
 function toggleDemo() {
   demoMode = !demoMode;
 
-  const btn = document.querySelectorAll("button")[2];
-
   if (demoMode) {
     connected = false;
-    btn.innerText = "Stop Demo";
-    document.getElementById("status").innerText = "Demo Mode Running";
+    document.getElementById("status").innerText = "Demo Mode";
     runDemo();
-  } else {
-    btn.innerText = "Demo Mode";
-    document.getElementById("status").innerText = "Demo Stopped";
   }
 }
 
-// =======================
-// THEME
-// =======================
-function toggleTheme() {
-  darkMode = !darkMode;
-  document.body.classList.toggle("dark");
+// Generate noisy, irregular signals
+function runDemo() {
+  if (!demoMode) return;
+
+  // occasional emotion change
+  if (Math.random() < 0.02) {
+    const states = ["Calm", "Focused", "Stressed"];
+    currentEmotion = states[Math.floor(Math.random() * states.length)];
+  }
+
+  let alpha, beta, emg;
+
+  if (currentEmotion === "Calm") {
+    alpha = 40 + randn() * 5;
+    beta = 15 + randn() * 4;
+    emg = 10 + Math.abs(randn() * 5);
+  }
+  else if (currentEmotion === "Focused") {
+    alpha = 25 + randn() * 5;
+    beta = 35 + randn() * 6;
+    emg = 20 + Math.abs(randn() * 6);
+  }
+  else {
+    alpha = 15 + randn() * 4;
+    beta = 50 + randn() * 8;
+    emg = 50 + Math.abs(randn() * 10);
+  }
+
+  const raw = alpha + beta + randn() * 10;
+
+  updateData(raw, alpha, beta, emg);
+
+  setTimeout(runDemo, 1000 / sampleRate);
+}
+
+// Gaussian noise (makes it look real)
+function randn() {
+  return (Math.random() - 0.5) * 2;
 }
 
 // =======================
-// DATA UPDATE
+// DATA UPDATE (TIME WINDOW)
 // =======================
 function updateData(raw, alpha, beta, emg) {
+
+  const time = Date.now() / 1000;
+
   eegData.push(raw);
   alphaData.push(alpha);
   betaData.push(beta);
   emgData.push(emg);
+  labels.push(time);
 
-  if (eegData.length > 200) {
+  while (labels.length > maxPoints) {
     eegData.shift();
     alphaData.shift();
     betaData.shift();
     emgData.shift();
+    labels.shift();
   }
 
-  eegChart.data.labels = eegData.map((_, i) => i);
+  eegChart.data.labels = labels;
   eegChart.data.datasets[0].data = eegData;
   eegChart.data.datasets[1].data = alphaData;
   eegChart.data.datasets[2].data = betaData;
   eegChart.update();
 
-  emgChart.data.labels = emgData.map((_, i) => i);
+  emgChart.data.labels = labels;
   emgChart.data.datasets[0].data = emgData;
   emgChart.update();
 
@@ -132,13 +189,13 @@ function updateData(raw, alpha, beta, emg) {
 }
 
 // =======================
-// EMOTION LOGIC
+// EMOTION DISPLAY
 // =======================
 function updateEmotion(alpha, beta, emg) {
   let state = "Calm";
 
-  if (beta > alpha * 1.5) state = "Stressed";
-  else if (alpha > beta) state = "Relaxed";
+  if (beta > alpha * 1.4) state = "Stressed";
+  else if (beta > alpha) state = "Focused";
 
   document.getElementById("status").innerText = "Overall: " + state;
   document.getElementById("eegEmotion").innerText = "EEG: " + state;
@@ -147,41 +204,9 @@ function updateEmotion(alpha, beta, emg) {
 }
 
 // =======================
-// DEMO SIGNAL GENERATOR
+// THEME
 // =======================
-function runDemo() {
-  if (!demoMode) return;
-
-  t += 0.1;
-  demoCounter++;
-
-  // Change emotion every ~5 seconds
-  if (demoCounter % 50 === 0) {
-    const emotions = ["Calm", "Focused", "Stressed"];
-    currentEmotion = emotions[Math.floor(Math.random() * emotions.length)];
-  }
-
-  let raw, alpha, beta, emg;
-
-  if (currentEmotion === "Calm") {
-    alpha = 40 + 10 * Math.sin(t);
-    beta = 15 + 5 * Math.sin(t * 1.5);
-    emg = 10 + Math.random() * 5;
-  } 
-  else if (currentEmotion === "Focused") {
-    alpha = 25 + 5 * Math.sin(t);
-    beta = 35 + 10 * Math.sin(t * 1.2);
-    emg = 20 + Math.random() * 10;
-  } 
-  else {
-    alpha = 15 + 5 * Math.sin(t);
-    beta = 50 + 15 * Math.sin(t * 2);
-    emg = 50 + Math.random() * 20;
-  }
-
-  raw = alpha + beta + Math.random() * 10;
-
-  updateData(raw, alpha, beta, emg);
-
-  setTimeout(runDemo, 100);
+function toggleTheme() {
+  darkMode = !darkMode;
+  document.body.classList.toggle("dark");
 }
