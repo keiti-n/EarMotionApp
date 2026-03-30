@@ -1,10 +1,48 @@
 body {
-  font-family: Arial;
+  font-family: "Segoe UI";
   background: #F5EFE6;
+  color: #4B463F;
+  margin: 0;
   text-align: center;
 }
 
-canvas {
-  max-width: 600px;
-  margin: 20px auto;
+.top-bar {
+  padding: 15px;
+}
+
+button {
+  background: #E7DFD5;
+  border: none;
+  padding: 8px 14px;
+  margin: 5px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.container {
+  display: flex;
+  justify-content: space-around;
+  padding: 20px;
+}
+
+.card {
+  background: white;
+  border-radius: 18px;
+  padding: 20px;
+  width: 45%;
+  box-shadow: 0px 4px 10px rgba(0,0,0,0.05);
+}
+
+/* DARK MODE */
+.dark {
+  background: #1E1C1A;
+  color: #E8E3DC;
+}
+
+.dark .card {
+  background: #2A2623;
+}
+
+.dark button {
+  background: #3A3430;
 }
