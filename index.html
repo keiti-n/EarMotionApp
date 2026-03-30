@@ -1,19 +1,42 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Brain Monitor</title>
+  <title>Brain & Muscle Monitor</title>
   <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
+
 <body>
 
-<h1>Brain & Muscle Monitor</h1>
-<button onclick="connect()">Connect</button>
+<div class="top-bar">
+  <button onclick="connect()">Connect</button>
+  <button onclick="disconnect()">Disconnect</button>
+  <button onclick="toggleDemo()">Demo Mode</button>
+  <button onclick="toggleTheme()">Toggle Theme</button>
+</div>
 
-<canvas id="eegChart"></canvas>
-<canvas id="emgChart"></canvas>
+<h1 id="status">Not Connected</h1>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<div class="container">
+
+  <!-- EEG CARD -->
+  <div class="card">
+    <h2>EEG Bands</h2>
+    <p id="eegEmotion">No Data</p>
+
+    <canvas id="eegChart"></canvas>
+  </div>
+
+  <!-- EMG CARD -->
+  <div class="card">
+    <h2>EMG Activity</h2>
+    <p id="emgEmotion">No Data</p>
+
+    <canvas id="emgChart"></canvas>
+  </div>
+
+</div>
+
 <script src="script.js"></script>
-
 </body>
 </html>
