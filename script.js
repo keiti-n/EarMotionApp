@@ -8,6 +8,13 @@ let darkMode = false;
 
 let eegData = [], alphaData = [], betaData = [], emgData = [];
 
+let t = 0;
+let currentEmotion = "Calm";
+let demoCounter = 0;
+
+// =======================
+// CHART SETUP
+// =======================
 const eegChart = new Chart(document.getElementById("eegChart"), {
   type: "line",
   data: {
@@ -28,6 +35,9 @@ const emgChart = new Chart(document.getElementById("emgChart"), {
   }
 });
 
+// =======================
+// BLE CONNECT
+// =======================
 async function connect() {
   const device = await navigator.bluetooth.requestDevice({
     filters: [{ name: DEVICE_NAME }],
@@ -41,6 +51,8 @@ async function connect() {
   await characteristic.startNotifications();
 
   connected = true;
+  demoMode = false;
+
   document.getElementById("status").innerText = "Connected";
 
   characteristic.addEventListener("characteristicvaluechanged", (event) => {
@@ -51,28 +63,48 @@ async function connect() {
   });
 }
 
+// =======================
+// DISCONNECT
+// =======================
 function disconnect() {
   connected = false;
   demoMode = false;
   document.getElementById("status").innerText = "Disconnected";
+
+  const btn = document.querySelectorAll("button")[2];
+  btn.innerText = "Demo Mode";
 }
 
+// =======================
+// DEMO MODE
+// =======================
 function toggleDemo() {
-  if (!connected) {
-    document.getElementById("status").innerText = "Connect First";
-    return;
-  }
-
   demoMode = !demoMode;
 
-  if (demoMode) runDemo();
+  const btn = document.querySelectorAll("button")[2];
+
+  if (demoMode) {
+    connected = false;
+    btn.innerText = "Stop Demo";
+    document.getElementById("status").innerText = "Demo Mode Running";
+    runDemo();
+  } else {
+    btn.innerText = "Demo Mode";
+    document.getElementById("status").innerText = "Demo Stopped";
+  }
 }
 
+// =======================
+// THEME
+// =======================
 function toggleTheme() {
   darkMode = !darkMode;
   document.body.classList.toggle("dark");
 }
 
+// =======================
+// DATA UPDATE
+// =======================
 function updateData(raw, alpha, beta, emg) {
   eegData.push(raw);
   alphaData.push(alpha);
@@ -99,6 +131,9 @@ function updateData(raw, alpha, beta, emg) {
   updateEmotion(alpha, beta, emg);
 }
 
+// =======================
+// EMOTION LOGIC
+// =======================
 function updateEmotion(alpha, beta, emg) {
   let state = "Calm";
 
@@ -108,16 +143,43 @@ function updateEmotion(alpha, beta, emg) {
   document.getElementById("status").innerText = "Overall: " + state;
   document.getElementById("eegEmotion").innerText = "EEG: " + state;
   document.getElementById("emgEmotion").innerText =
-    emg > 50 ? "EMG: Active" : "EMG: Relaxed";
+    emg > 40 ? "EMG: Active" : "EMG: Relaxed";
 }
 
+// =======================
+// DEMO SIGNAL GENERATOR
+// =======================
 function runDemo() {
   if (!demoMode) return;
 
-  const raw = Math.random() * 100;
-  const alpha = Math.random() * 50;
-  const beta = Math.random() * 50;
-  const emg = Math.random() * 80;
+  t += 0.1;
+  demoCounter++;
+
+  // Change emotion every ~5 seconds
+  if (demoCounter % 50 === 0) {
+    const emotions = ["Calm", "Focused", "Stressed"];
+    currentEmotion = emotions[Math.floor(Math.random() * emotions.length)];
+  }
+
+  let raw, alpha, beta, emg;
+
+  if (currentEmotion === "Calm") {
+    alpha = 40 + 10 * Math.sin(t);
+    beta = 15 + 5 * Math.sin(t * 1.5);
+    emg = 10 + Math.random() * 5;
+  } 
+  else if (currentEmotion === "Focused") {
+    alpha = 25 + 5 * Math.sin(t);
+    beta = 35 + 10 * Math.sin(t * 1.2);
+    emg = 20 + Math.random() * 10;
+  } 
+  else {
+    alpha = 15 + 5 * Math.sin(t);
+    beta = 50 + 15 * Math.sin(t * 2);
+    emg = 50 + Math.random() * 20;
+  }
+
+  raw = alpha + beta + Math.random() * 10;
 
   updateData(raw, alpha, beta, emg);
 
