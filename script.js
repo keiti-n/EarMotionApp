@@ -7,9 +7,8 @@ let connected = false;
 let demoMode = false;
 let darkMode = false;
 
-// ================= TIME WINDOW =================
-let sampleRate = 10;       // Hz
-let windowSeconds = 10;     // change this anytime
+let sampleRate = 10;
+let windowSeconds = 10;
 let maxPoints = sampleRate * windowSeconds;
 
 // ================= DATA =================
@@ -32,9 +31,9 @@ const eegChart = new Chart(document.getElementById("eegChart"), {
   data: {
     labels: [],
     datasets: [
-      { label: "Raw EEG", data: [], borderWidth: 2, pointRadius: 0 },
-      { label: "Alpha", data: [], borderWidth: 2, pointRadius: 0 },
-      { label: "Beta", data: [], borderWidth: 2, pointRadius: 0 }
+      { label: "Raw EEG", data: [], borderColor:"#CDB4DB", borderWidth: 2, pointRadius: 0 },
+      { label: "Alpha", data: [], borderColor:"#A2D2FF", borderWidth: 2, pointRadius: 0 },
+      { label: "Beta", data: [], borderColor:"#FFAFCC", borderWidth: 2, pointRadius: 0 }
     ]
   },
   options: {
@@ -52,7 +51,7 @@ const emgChart = new Chart(document.getElementById("emgChart"), {
   data: {
     labels: [],
     datasets: [
-      { label: "EMG", data: [], borderWidth: 2, pointRadius: 0 }
+      { label: "EMG", data: [], borderColor:"#BDE0FE", borderWidth: 2, pointRadius: 0 }
     ]
   },
   options: {
@@ -65,40 +64,11 @@ const emgChart = new Chart(document.getElementById("emgChart"), {
   }
 });
 
-// ================= BLE CONNECT =================
-async function connect() {
-  const device = await navigator.bluetooth.requestDevice({
-    filters: [{ name: DEVICE_NAME }],
-    optionalServices: [SERVICE_UUID]
-  });
-
-  const server = await device.gatt.connect();
-  const service = await server.getPrimaryService(SERVICE_UUID);
-  const characteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
-
-  await characteristic.startNotifications();
-
-  connected = true;
-  demoMode = false;
-
-  document.getElementById("status").innerText = "Connected";
-
-  characteristic.addEventListener("characteristicvaluechanged", (event) => {
-    const value = new TextDecoder().decode(event.target.value);
-    const [raw, alpha, beta, emg] = value.split(",");
-
-    updateData(+raw, +alpha, +beta, +emg);
-  });
+// ================= DEMO =================
+function randn() {
+  return (Math.random() - 0.5) * 2;
 }
 
-// ================= DISCONNECT =================
-function disconnect() {
-  connected = false;
-  demoMode = false;
-  document.getElementById("status").innerText = "Disconnected";
-}
-
-// ================= DEMO MODE =================
 function toggleDemo() {
   demoMode = !demoMode;
 
@@ -109,43 +79,51 @@ function toggleDemo() {
   }
 }
 
-// “realistic noise” generator
-function randn() {
-  return (Math.random() - 0.5) * 2;
-}
-
 function runDemo() {
   if (!demoMode) return;
 
+  const states = ["Calm","Excited","Stressed","Sad"];
+
   if (Math.random() < 0.02) {
-    const states = ["Calm", "Focused", "Stressed"];
     currentEmotion = states[Math.floor(Math.random() * states.length)];
   }
 
   let alpha, beta, emg;
 
-  if (currentEmotion === "Calm") {
-    alpha = 40 + randn() * 6;
-    beta = 15 + randn() * 5;
-    emg = 10 + Math.abs(randn() * 6);
-  } else if (currentEmotion === "Focused") {
-    alpha = 25 + randn() * 6;
-    beta = 35 + randn() * 7;
-    emg = 20 + Math.abs(randn() * 8);
-  } else {
-    alpha = 15 + randn() * 5;
-    beta = 55 + randn() * 10;
-    emg = 50 + Math.abs(randn() * 12);
+  switch(currentEmotion) {
+    case "Calm":
+      alpha = 45 + randn()*6;
+      beta  = 15 + randn()*4;
+      emg   = 10 + Math.abs(randn()*5);
+      break;
+
+    case "Excited":
+      alpha = 35 + randn()*6;
+      beta  = 35 + randn()*8;
+      emg   = 25 + Math.abs(randn()*8);
+      break;
+
+    case "Stressed":
+      alpha = 15 + randn()*5;
+      beta  = 60 + randn()*10;
+      emg   = 55 + Math.abs(randn()*12);
+      break;
+
+    case "Sad":
+      alpha = 25 + randn()*5;
+      beta  = 25 + randn()*5;
+      emg   = 20 + Math.abs(randn()*6);
+      break;
   }
 
-  const raw = alpha + beta + randn() * 12;
+  const raw = alpha + beta + randn()*10;
 
   updateData(raw, alpha, beta, emg);
 
   setTimeout(runDemo, 1000 / sampleRate);
 }
 
-// ================= UPDATE DATA =================
+// ================= DATA =================
 function updateData(raw, alpha, beta, emg) {
 
   const time = Date.now() / 1000;
@@ -156,7 +134,6 @@ function updateData(raw, alpha, beta, emg) {
   emgData.push(emg);
   labels.push(time);
 
-  // maintain fixed window
   while (labels.length > maxPoints) {
     eegData.shift();
     alphaData.shift();
@@ -177,30 +154,50 @@ function updateData(raw, alpha, beta, emg) {
 
   updateEmotion(alpha, beta, emg);
 
-  // ================= RECORDING =================
   if (recording) {
     recordedData.push({
       time: (Date.now() - startTime) / 1000,
       rawEEG: raw,
-      alpha: alpha,
-      beta: beta,
-      emg: emg,
+      alpha,
+      beta,
+      emg,
       emotion: currentEmotion
     });
   }
 }
 
-// ================= EMOTION =================
+// ================= EMOTION LOGIC =================
 function updateEmotion(alpha, beta, emg) {
-  let state = "Calm";
 
-  if (beta > alpha * 1.4) state = "Stressed";
-  else if (beta > alpha) state = "Focused";
+  let state = currentEmotion;
+
+  if (beta > alpha * 1.5) state = "Stressed";
+  else if (beta > alpha * 1.1) state = "Excited";
+  else if (alpha > beta) state = "Calm";
+  else state = "Sad";
 
   document.getElementById("status").innerText = "State: " + state;
+  document.getElementById("eegEmotion").innerText = "EEG: " + currentEmotion;
+  document.getElementById("emgEmotion").innerText =
+    "EMG: " + (state === "Stressed" ? "High Activity"
+      : state === "Excited" ? "Active"
+      : "Relaxed");
 }
 
-// ================= RECORDING CONTROLS =================
+// ================= CONNECT =================
+async function connect() {
+  document.getElementById("status").innerText = "Connected";
+  connected = true;
+  demoMode = false;
+}
+
+function disconnect() {
+  connected = false;
+  demoMode = false;
+  document.getElementById("status").innerText = "Disconnected";
+}
+
+// ================= RECORDING =================
 function startRecording() {
   recordedData = [];
   recording = true;
@@ -214,7 +211,6 @@ function stopRecording() {
   document.getElementById("status").innerText = "Saved CSV";
 }
 
-// ================= CSV EXPORT =================
 function downloadCSV() {
   let csv = "time,rawEEG,alpha,beta,emg,emotion\n";
 
