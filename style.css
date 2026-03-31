@@ -1,9 +1,10 @@
 body {
   font-family: "Segoe UI";
-  background: #F5EFE6;
-  color: #4B463F;
+  background: #F7F3EE;
+  color: #3E3A34;
   margin: 0;
   text-align: center;
+  transition: 0.3s;
 }
 
 .top-bar {
@@ -17,6 +18,11 @@ button {
   margin: 5px;
   border-radius: 10px;
   cursor: pointer;
+  transition: 0.2s;
+}
+
+button:hover {
+  transform: scale(1.05);
 }
 
 .container {
@@ -30,19 +36,26 @@ button {
   border-radius: 18px;
   padding: 20px;
   width: 45%;
-  box-shadow: 0px 4px 10px rgba(0,0,0,0.05);
+  box-shadow: 0px 6px 18px rgba(0,0,0,0.08);
 }
 
-/* DARK MODE */
+/* ================= DARK MODE (TRUE BLACK) ================= */
 .dark {
-  background: #1E1C1A;
+  background: #0B0B0B;
   color: #E8E3DC;
 }
 
 .dark .card {
-  background: #2A2623;
+  background: #1C1C1C;
+  box-shadow: 0px 6px 18px rgba(0,0,0,0.5);
 }
 
 .dark button {
-  background: #3A3430;
+  background: #2A2A2A;
+  color: white;
+}
+
+/* canvas glow feel */
+canvas {
+  border-radius: 10px;
 }
