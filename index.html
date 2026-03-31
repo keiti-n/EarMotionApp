@@ -1,6 +1,3 @@
-<button onclick="startRecording()">Start Recording</button>
-<button onclick="stopRecording()">Stop & Download CSV</button>
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -16,6 +13,8 @@
   <button onclick="disconnect()">Disconnect</button>
   <button onclick="toggleDemo()">Demo Mode</button>
   <button onclick="toggleTheme()">Toggle Theme</button>
+  <button onclick="startRecording()">Start Recording</button>
+  <button onclick="stopRecording()">Stop & Download CSV</button>
 </div>
 
 <h1 id="status">Not Connected</h1>
@@ -26,7 +25,6 @@
   <div class="card">
     <h2>EEG Bands</h2>
     <p id="eegEmotion">No Data</p>
-
     <canvas id="eegChart"></canvas>
   </div>
 
@@ -34,7 +32,6 @@
   <div class="card">
     <h2>EMG Activity</h2>
     <p id="emgEmotion">No Data</p>
-
     <canvas id="emgChart"></canvas>
   </div>
 
