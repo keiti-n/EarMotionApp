@@ -1,54 +1,52 @@
-// ================= BLE =================
-const SERVICE_UUID = "12345678-1234-5678-1234-56789abcdef0";
-const CHARACTERISTIC_UUID = "12345678-1234-5678-1234-56789abcdef1";
-
-let device, characteristic;
-
 // ================= STATE =================
 let recording = false;
 let demoMode = false;
 
-let eegData = [], alphaData = [], betaData = [], emgData = [], labels = [];
+let eegData = [];
+let alphaData = [];
+let betaData = [];
+let emgData = [];
+let labels = [];
+
 let recordedData = [];
 
-// ================= CONNECT BLE =================
-async function connect() {
-  try {
-    device = await navigator.bluetooth.requestDevice({
-      acceptAllDevices: true,
-      optionalServices: [SERVICE_UUID]
-    });
+// ================= CHARTS =================
+let eegChart, emgChart;
 
-    const server = await device.gatt.connect();
-    const service = await server.getPrimaryService(SERVICE_UUID);
-    characteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
+window.onload = () => {
+  initCharts();
+};
 
-    characteristic.startNotifications();
-    characteristic.addEventListener('characteristicvaluechanged', handleBLE);
+// ================= INIT CHARTS =================
+function initCharts() {
 
-    document.getElementById("status").innerText = "Connected";
+  eegChart = new Chart(document.getElementById("eegChart"), {
+    type: "line",
+    data: {
+      labels: [],
+      datasets: [
+        { label: "EEG", data: [], borderWidth: 2, pointRadius: 0 },
+        { label: "Alpha", data: [], borderWidth: 2, pointRadius: 0 },
+        { label: "Beta", data: [], borderWidth: 2, pointRadius: 0 }
+      ]
+    },
+    options: { animation: false }
+  });
 
-  } catch (err) {
-    console.error(err);
-    alert("Bluetooth connection failed");
-  }
-}
-
-function disconnect() {
-  if (device?.gatt.connected) device.gatt.disconnect();
-  document.getElementById("status").innerText = "Disconnected";
-}
-
-// ================= BLE DATA =================
-function handleBLE(event) {
-  const value = new TextDecoder().decode(event.target.value);
-  const [raw, alpha, beta, emg] = value.split(",").map(Number);
-
-  updateData(raw, alpha, beta, emg);
+  emgChart = new Chart(document.getElementById("emgChart"), {
+    type: "line",
+    data: {
+      labels: [],
+      datasets: [
+        { label: "EMG", data: [], borderWidth: 2, pointRadius: 0 }
+      ]
+    },
+    options: { animation: false }
+  });
 }
 
 // ================= UPDATE DATA =================
-function updateData(raw, alpha, beta, emg) {
+function updateData(raw, alpha, beta, emg, groundTruth = "") {
 
   const time = Date.now() / 1000;
 
@@ -58,97 +56,57 @@ function updateData(raw, alpha, beta, emg) {
   emgData.push(emg);
   labels.push(time);
 
-  if (labels.length > 100) {
-    eegData.shift(); alphaData.shift();
-    betaData.shift(); emgData.shift();
+  if (labels.length > 120) {
+    eegData.shift();
+    alphaData.shift();
+    betaData.shift();
+    emgData.shift();
     labels.shift();
   }
 
-  updateEmotion(alpha, beta, emg);
-  updateEMGEmotion(emg);
-
-  if (recording) {
-    recordedData.push({ time, raw, alpha, beta, emg });
-  }
-}
-
-// ================= EMOTION LOGIC =================
-function updateEmotion(alpha, beta, emg) {
-
+  // ===== EEG EMOTION =====
   let eegState =
     beta > alpha * 1.5 ? "Stressed" :
     beta > alpha ? "Excited" :
     "Calm";
 
-  document.getElementById("eegEmotion").innerText = eegState;
-}
-
-// ================= EMG EMOTION (FIXED) =================
-function updateEMGEmotion(emg) {
-
-  let state =
+  // ===== EMG STATE =====
+  let emgState =
     emg > 60 ? "Tense" :
     emg > 30 ? "Active" :
     "Relaxed";
 
-  document.getElementById("emgEmotion").innerText = state;
-}
+  document.getElementById("eegEmotion").innerText = eegState;
+  document.getElementById("emgEmotion").innerText = emgState;
 
-// ================= RECORDING TOGGLE (FIXED) =================
-function toggleRecording() {
+  // ===== UPDATE CHARTS (CRITICAL FIX) =====
+  eegChart.data.labels = labels;
 
-  const btn = document.getElementById("recordBtn");
+  eegChart.data.datasets[0].data = eegData;
+  eegChart.data.datasets[1].data = alphaData;
+  eegChart.data.datasets[2].data = betaData;
 
-  if (!recording) {
-    recordedData = [];
-    recording = true;
-    btn.innerText = "Stop & Download CSV";
-    document.getElementById("status").innerText = "Recording...";
-    return;
+  eegChart.update();
+  emgChart.data.labels = labels;
+  emgChart.data.datasets[0].data = emgData;
+  emgChart.update();
+
+  // ===== RECORDING =====
+  if (recording) {
+    recordedData.push({
+      time,
+      raw,
+      alpha,
+      beta,
+      emg,
+      eegEmotion: eegState,
+      emgEmotion: emgState,
+      label: groundTruth
+    });
   }
-
-  recording = false;
-  btn.innerText = "Start Recording";
-  downloadCSV();
 }
 
-// ================= CSV =================
-function downloadCSV() {
-  let csv = "time,raw,alpha,beta,emg\n";
-
-  recordedData.forEach(r => {
-    csv += `${r.time},${r.raw},${r.alpha},${r.beta},${r.emg}\n`;
-  });
-
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "data.csv";
-  a.click();
-}
-
-// ================= AZURE PANEL TOGGLE =================
-function toggleAzureUI() {
-  document.getElementById("azurePanel").classList.toggle("hidden");
-}
-
-async function loadAzureCSV() {
-  const url = document.getElementById("azureUrl").value;
-
-  const res = await fetch(url);
-  const text = await res.text();
-
-  const rows = text.split("\n").slice(1);
-
-  rows.forEach(r => {
-    const [time, raw, alpha, beta, emg] = r.split(",").map(Number);
-    updateData(raw, alpha, beta, emg);
-  });
-}
-
-// ================= DEMO =================
+// ================= DEMO MODE (FIXED) =================
 function toggleDemo() {
   demoMode = !demoMode;
   if (demoMode) demoLoop();
@@ -157,14 +115,83 @@ function toggleDemo() {
 function demoLoop() {
   if (!demoMode) return;
 
-  const alpha = 40 + Math.random()*10;
-  const beta = 30 + Math.random()*15;
-  const emg = 20 + Math.random()*40;
-  const raw = alpha + beta;
+  const alpha = 30 + Math.random() * 10;
+  const beta = 40 + Math.random() * 15;
+  const emg = 20 + Math.random() * 60;
+  const raw = alpha + beta + Math.random() * 5;
 
   updateData(raw, alpha, beta, emg);
 
   setTimeout(demoLoop, 100);
+}
+
+// ================= RECORDING TOGGLE =================
+function toggleRecording() {
+
+  const btn = document.getElementById("recordBtn");
+
+  if (!recording) {
+    recordedData = [];
+    recording = true;
+    btn.innerText = "Stop & Download CSV";
+    return;
+  }
+
+  recording = false;
+  btn.innerText = "Start Recording";
+  downloadCSV();
+}
+
+// ================= CSV EXPORT (WITH LABELS) =================
+function downloadCSV() {
+
+  let csv = "time,raw,alpha,beta,emg,eegEmotion,emgEmotion,label\n";
+
+  recordedData.forEach(r => {
+    csv += `${r.time},${r.raw},${r.alpha},${r.beta},${r.emg},${r.eegEmotion},${r.emgEmotion},${r.label}\n`;
+  });
+
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "neuro_data_labeled.csv";
+  a.click();
+}
+
+// ================= LOCAL FILE LOAD =================
+function loadLocalCSV(event) {
+
+  const file = event.target.files[0];
+  const reader = new FileReader();
+
+  reader.onload = function(e) {
+
+    const rows = e.target.result.split("\n").slice(1);
+
+    rows.forEach(r => {
+      const cols = r.split(",");
+
+      const raw = Number(cols[1]);
+      const alpha = Number(cols[2]);
+      const beta = Number(cols[3]);
+      const emg = Number(cols[4]);
+
+      updateData(raw, alpha, beta, emg, cols[cols.length - 1]);
+    });
+  };
+
+  reader.readAsText(file);
+}
+
+// ================= BLE (optional placeholder) =================
+function connect() {
+  document.getElementById("status").innerText = "BLE not reconnected in this build yet";
+}
+
+function disconnect() {
+  document.getElementById("status").innerText = "Disconnected";
 }
 
 // ================= THEME =================
