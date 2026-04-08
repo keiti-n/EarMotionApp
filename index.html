@@ -17,18 +17,28 @@
   <button onclick="stopRecording()">Stop & Download CSV</button>
 </div>
 
+<div class="top-bar">
+  <input id="azureUrl" placeholder="Azure CSV URL" style="padding:8px;width:60%">
+  <button onclick="loadAzureCSV()">Load Azure Data</button>
+</div>
+
 <h1 id="status">Not Connected</h1>
+
+<div id="mlStatus">
+  <p>SVM: <span id="svmOut">-</span></p>
+  <p>Azure ML: <span id="azureOut">-</span></p>
+</div>
 
 <div class="container">
 
-  <!-- EEG CARD -->
+  <!-- EEG -->
   <div class="card">
     <h2>EEG Bands</h2>
     <p id="eegEmotion">No Data</p>
     <canvas id="eegChart"></canvas>
   </div>
 
-  <!-- EMG CARD -->
+  <!-- EMG -->
   <div class="card">
     <h2>EMG Activity</h2>
     <p id="emgEmotion">No Data</p>
