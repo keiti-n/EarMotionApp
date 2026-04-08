@@ -1,9 +1,6 @@
 const DEVICE_NAME = "XIAO-C3-BLE";
-const SERVICE_UUID = "12345678-1234-5678-1234-56789abcdef0";
-const CHARACTERISTIC_UUID = "12345678-1234-5678-1234-56789abcdef1";
 
 // ================= STATE =================
-let connected = false;
 let demoMode = false;
 let darkMode = false;
 
@@ -20,10 +17,8 @@ let labels = [];
 
 let currentEmotion = "Calm";
 
-// ================= RECORDING =================
-let recording = false;
-let recordedData = [];
-let startTime = 0;
+// ================= ML =================
+let svmModel = null;
 
 // ================= CHARTS =================
 const eegChart = new Chart(document.getElementById("eegChart"), {
@@ -31,19 +26,12 @@ const eegChart = new Chart(document.getElementById("eegChart"), {
   data: {
     labels: [],
     datasets: [
-      { label: "Raw EEG", data: [], borderColor:"#CDB4DB", borderWidth: 2, pointRadius: 0 },
-      { label: "Alpha", data: [], borderColor:"#A2D2FF", borderWidth: 2, pointRadius: 0 },
-      { label: "Beta", data: [], borderColor:"#FFAFCC", borderWidth: 2, pointRadius: 0 }
+      { label: "EEG", data: [], borderWidth: 2, pointRadius: 0 },
+      { label: "Alpha", data: [], borderWidth: 2, pointRadius: 0 },
+      { label: "Beta", data: [], borderWidth: 2, pointRadius: 0 }
     ]
   },
-  options: {
-    animation: false,
-    responsive: true,
-    scales: {
-      x: { display: false },
-      y: { beginAtZero: false }
-    }
-  }
+  options: { animation: false }
 });
 
 const emgChart = new Chart(document.getElementById("emgChart"), {
@@ -51,79 +39,13 @@ const emgChart = new Chart(document.getElementById("emgChart"), {
   data: {
     labels: [],
     datasets: [
-      { label: "EMG", data: [], borderColor:"#BDE0FE", borderWidth: 2, pointRadius: 0 }
+      { label: "EMG", data: [], borderWidth: 2, pointRadius: 0 }
     ]
   },
-  options: {
-    animation: false,
-    responsive: true,
-    scales: {
-      x: { display: false },
-      y: { beginAtZero: false }
-    }
-  }
+  options: { animation: false }
 });
 
-// ================= DEMO =================
-function randn() {
-  return (Math.random() - 0.5) * 2;
-}
-
-function toggleDemo() {
-  demoMode = !demoMode;
-
-  if (demoMode) {
-    connected = false;
-    document.getElementById("status").innerText = "Demo Mode";
-    runDemo();
-  }
-}
-
-function runDemo() {
-  if (!demoMode) return;
-
-  const states = ["Calm","Excited","Stressed","Sad"];
-
-  if (Math.random() < 0.02) {
-    currentEmotion = states[Math.floor(Math.random() * states.length)];
-  }
-
-  let alpha, beta, emg;
-
-  switch(currentEmotion) {
-    case "Calm":
-      alpha = 45 + randn()*6;
-      beta  = 15 + randn()*4;
-      emg   = 10 + Math.abs(randn()*5);
-      break;
-
-    case "Excited":
-      alpha = 35 + randn()*6;
-      beta  = 35 + randn()*8;
-      emg   = 25 + Math.abs(randn()*8);
-      break;
-
-    case "Stressed":
-      alpha = 15 + randn()*5;
-      beta  = 60 + randn()*10;
-      emg   = 55 + Math.abs(randn()*12);
-      break;
-
-    case "Sad":
-      alpha = 25 + randn()*5;
-      beta  = 25 + randn()*5;
-      emg   = 20 + Math.abs(randn()*6);
-      break;
-  }
-
-  const raw = alpha + beta + randn()*10;
-
-  updateData(raw, alpha, beta, emg);
-
-  setTimeout(runDemo, 1000 / sampleRate);
-}
-
-// ================= DATA =================
+// ================= DATA UPDATE =================
 function updateData(raw, alpha, beta, emg) {
 
   const time = Date.now() / 1000;
@@ -134,7 +56,7 @@ function updateData(raw, alpha, beta, emg) {
   emgData.push(emg);
   labels.push(time);
 
-  while (labels.length > maxPoints) {
+  if (labels.length > maxPoints) {
     eegData.shift();
     alphaData.shift();
     betaData.shift();
@@ -152,82 +74,125 @@ function updateData(raw, alpha, beta, emg) {
   emgChart.data.datasets[0].data = emgData;
   emgChart.update();
 
-  updateEmotion(alpha, beta, emg);
+  runMLPipeline();
 
-  if (recording) {
-    recordedData.push({
-      time: (Date.now() - startTime) / 1000,
-      rawEEG: raw,
-      alpha,
-      beta,
-      emg,
-      emotion: currentEmotion
+  document.getElementById("emgEmotion").innerText = "EMG updated";
+}
+
+// ================= FEATURE EXTRACTION =================
+function extractFeatures() {
+  function mean(arr) {
+    return arr.reduce((a,b)=>a+b,0)/arr.length;
+  }
+
+  return {
+    eegMean: mean(eegData),
+    alphaMean: mean(alphaData),
+    betaMean: mean(betaData),
+    emgMean: mean(emgData),
+    betaAlphaRatio: mean(betaData) / (mean(alphaData) + 1e-6)
+  };
+}
+
+// ================= SVM (simple placeholder model) =================
+function svmPredict(f) {
+  if (f.betaAlphaRatio > 1.8) return "Stressed";
+  if (f.betaAlphaRatio > 1.2) return "Excited";
+  if (f.alphaMean > f.betaMean) return "Calm";
+  return "Sad";
+}
+
+// ================= AZURE ML =================
+async function azurePredict(features) {
+  try {
+    const res = await fetch("https://YOUR-AZURE-ENDPOINT/predict", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(features)
     });
+
+    const data = await res.json();
+    return data.prediction || "Unknown";
+
+  } catch (e) {
+    return "Azure error";
   }
 }
 
-// ================= EMOTION LOGIC =================
-function updateEmotion(alpha, beta, emg) {
+// ================= PIPELINE =================
+async function runMLPipeline() {
 
-  let state = currentEmotion;
+  const f = extractFeatures();
 
-  if (beta > alpha * 1.5) state = "Stressed";
-  else if (beta > alpha * 1.1) state = "Excited";
-  else if (alpha > beta) state = "Calm";
-  else state = "Sad";
+  const svmResult = svmPredict(f);
+  document.getElementById("svmOut").innerText = svmResult;
 
-  document.getElementById("status").innerText = "State: " + state;
-  document.getElementById("eegEmotion").innerText = "EEG: " + currentEmotion;
-  document.getElementById("emgEmotion").innerText =
-    "EMG: " + (state === "Stressed" ? "High Activity"
-      : state === "Excited" ? "Active"
-      : "Relaxed");
+  const azureResult = await azurePredict(f);
+  document.getElementById("azureOut").innerText = azureResult;
+
+  document.getElementById("eegEmotion").innerText =
+    `SVM: ${svmResult} | Azure: ${azureResult}`;
 }
 
-// ================= CONNECT =================
-async function connect() {
+// ================= AZURE CSV LOADER =================
+async function loadAzureCSV() {
+
+  const url = document.getElementById("azureUrl").value;
+
+  const res = await fetch(url);
+  const text = await res.text();
+
+  const rows = text.split("\n").slice(1);
+
+  rows.forEach(r => {
+    const cols = r.split(",");
+
+    const time = parseFloat(cols[0]);
+    const raw = parseFloat(cols[1]);
+    const alpha = parseFloat(cols[2]);
+    const beta = parseFloat(cols[3]);
+    const emg = parseFloat(cols[4]);
+
+    updateData(raw, alpha, beta, emg);
+  });
+
+  alert("Azure CSV loaded");
+}
+
+// ================= DEMO =================
+function randn() {
+  return (Math.random() - 0.5) * 2;
+}
+
+function toggleDemo() {
+  demoMode = !demoMode;
+  if (demoMode) runDemo();
+}
+
+function runDemo() {
+
+  if (!demoMode) return;
+
+  const alpha = 30 + randn()*5;
+  const beta  = 40 + randn()*10;
+  const emg   = 20 + Math.abs(randn()*8);
+
+  const raw = alpha + beta + randn()*5;
+
+  updateData(raw, alpha, beta, emg);
+
+  setTimeout(runDemo, 1000 / sampleRate);
+}
+
+// ================= BASIC CONTROLS =================
+function connect() {
   document.getElementById("status").innerText = "Connected";
-  connected = true;
-  demoMode = false;
 }
 
 function disconnect() {
-  connected = false;
-  demoMode = false;
   document.getElementById("status").innerText = "Disconnected";
 }
 
-// ================= RECORDING =================
-function startRecording() {
-  recordedData = [];
-  recording = true;
-  startTime = Date.now();
-  document.getElementById("status").innerText = "Recording...";
-}
-
-function stopRecording() {
-  recording = false;
-  downloadCSV();
-  document.getElementById("status").innerText = "Saved CSV";
-}
-
-function downloadCSV() {
-  let csv = "time,rawEEG,alpha,beta,emg,emotion\n";
-
-  recordedData.forEach(r => {
-    csv += `${r.time},${r.rawEEG},${r.alpha},${r.beta},${r.emg},${r.emotion}\n`;
-  });
-
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "neuro_data.csv";
-  a.click();
-}
-
-// ================= THEME =================
 function toggleTheme() {
   darkMode = !darkMode;
   document.body.classList.toggle("dark");
