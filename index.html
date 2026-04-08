@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Brain & Muscle Monitor</title>
+  <title>EarMotion</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -12,40 +12,33 @@
 
   <button onclick="connect()">Connect</button>
   <button onclick="disconnect()">Disconnect</button>
-  <button onclick="toggleDemo()">Demo</button>
+  <button onclick="toggleDemo()">Demo Mode</button>
   <button onclick="toggleTheme()">Theme</button>
 
-  <!-- TOGGLE BUTTONS -->
   <button id="recordBtn" onclick="toggleRecording()">Start Recording</button>
 
-  <button onclick="toggleAzureUI()">Load Data</button>
+  <!-- local file loader -->
+  <button onclick="document.getElementById('fileInput').click()">Load CSV</button>
+  <input type="file" id="fileInput" hidden onchange="loadLocalCSV(event)">
 
-</div>
-
-<!-- hidden Azure loader -->
-<div id="azurePanel" class="hidden">
-  <input id="azureUrl" placeholder="Azure CSV URL">
-  <button onclick="loadAzureCSV()">Import</button>
 </div>
 
 <h1 id="status">Not Connected</h1>
 
-<div id="mlStatus">
-  <p>SVM: <span id="svmOut">-</span></p>
-  <p>Azure ML: <span id="azureOut">-</span></p>
+<div class="ml">
+  <p>EEG: <span id="eegEmotion">-</span></p>
+  <p>EMG: <span id="emgEmotion">-</span></p>
 </div>
 
 <div class="container">
 
   <div class="card">
     <h2>EEG</h2>
-    <p id="eegEmotion">No Data</p>
     <canvas id="eegChart"></canvas>
   </div>
 
   <div class="card">
     <h2>EMG</h2>
-    <p id="emgEmotion">No Data</p>
     <canvas id="emgChart"></canvas>
   </div>
 
