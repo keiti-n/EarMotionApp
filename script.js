@@ -1,51 +1,53 @@
-const DEVICE_NAME = "XIAO-C3-BLE";
+// ================= BLE =================
+const SERVICE_UUID = "12345678-1234-5678-1234-56789abcdef0";
+const CHARACTERISTIC_UUID = "12345678-1234-5678-1234-56789abcdef1";
+
+let device, characteristic;
 
 // ================= STATE =================
+let recording = false;
 let demoMode = false;
-let darkMode = false;
 
-let sampleRate = 10;
-let windowSeconds = 10;
-let maxPoints = sampleRate * windowSeconds;
+let eegData = [], alphaData = [], betaData = [], emgData = [], labels = [];
+let recordedData = [];
 
-// ================= DATA =================
-let eegData = [];
-let alphaData = [];
-let betaData = [];
-let emgData = [];
-let labels = [];
+// ================= CONNECT BLE =================
+async function connect() {
+  try {
+    device = await navigator.bluetooth.requestDevice({
+      acceptAllDevices: true,
+      optionalServices: [SERVICE_UUID]
+    });
 
-let currentEmotion = "Calm";
+    const server = await device.gatt.connect();
+    const service = await server.getPrimaryService(SERVICE_UUID);
+    characteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
 
-// ================= ML =================
-let svmModel = null;
+    characteristic.startNotifications();
+    characteristic.addEventListener('characteristicvaluechanged', handleBLE);
 
-// ================= CHARTS =================
-const eegChart = new Chart(document.getElementById("eegChart"), {
-  type: "line",
-  data: {
-    labels: [],
-    datasets: [
-      { label: "EEG", data: [], borderWidth: 2, pointRadius: 0 },
-      { label: "Alpha", data: [], borderWidth: 2, pointRadius: 0 },
-      { label: "Beta", data: [], borderWidth: 2, pointRadius: 0 }
-    ]
-  },
-  options: { animation: false }
-});
+    document.getElementById("status").innerText = "Connected";
 
-const emgChart = new Chart(document.getElementById("emgChart"), {
-  type: "line",
-  data: {
-    labels: [],
-    datasets: [
-      { label: "EMG", data: [], borderWidth: 2, pointRadius: 0 }
-    ]
-  },
-  options: { animation: false }
-});
+  } catch (err) {
+    console.error(err);
+    alert("Bluetooth connection failed");
+  }
+}
 
-// ================= DATA UPDATE =================
+function disconnect() {
+  if (device?.gatt.connected) device.gatt.disconnect();
+  document.getElementById("status").innerText = "Disconnected";
+}
+
+// ================= BLE DATA =================
+function handleBLE(event) {
+  const value = new TextDecoder().decode(event.target.value);
+  const [raw, alpha, beta, emg] = value.split(",").map(Number);
+
+  updateData(raw, alpha, beta, emg);
+}
+
+// ================= UPDATE DATA =================
 function updateData(raw, alpha, beta, emg) {
 
   const time = Date.now() / 1000;
@@ -56,87 +58,83 @@ function updateData(raw, alpha, beta, emg) {
   emgData.push(emg);
   labels.push(time);
 
-  if (labels.length > maxPoints) {
-    eegData.shift();
-    alphaData.shift();
-    betaData.shift();
-    emgData.shift();
+  if (labels.length > 100) {
+    eegData.shift(); alphaData.shift();
+    betaData.shift(); emgData.shift();
     labels.shift();
   }
 
-  eegChart.data.labels = labels;
-  eegChart.data.datasets[0].data = eegData;
-  eegChart.data.datasets[1].data = alphaData;
-  eegChart.data.datasets[2].data = betaData;
-  eegChart.update();
+  updateEmotion(alpha, beta, emg);
+  updateEMGEmotion(emg);
 
-  emgChart.data.labels = labels;
-  emgChart.data.datasets[0].data = emgData;
-  emgChart.update();
-
-  runMLPipeline();
-
-  document.getElementById("emgEmotion").innerText = "EMG updated";
-}
-
-// ================= FEATURE EXTRACTION =================
-function extractFeatures() {
-  function mean(arr) {
-    return arr.reduce((a,b)=>a+b,0)/arr.length;
-  }
-
-  return {
-    eegMean: mean(eegData),
-    alphaMean: mean(alphaData),
-    betaMean: mean(betaData),
-    emgMean: mean(emgData),
-    betaAlphaRatio: mean(betaData) / (mean(alphaData) + 1e-6)
-  };
-}
-
-// ================= SVM (simple placeholder model) =================
-function svmPredict(f) {
-  if (f.betaAlphaRatio > 1.8) return "Stressed";
-  if (f.betaAlphaRatio > 1.2) return "Excited";
-  if (f.alphaMean > f.betaMean) return "Calm";
-  return "Sad";
-}
-
-// ================= AZURE ML =================
-async function azurePredict(features) {
-  try {
-    const res = await fetch("https://YOUR-AZURE-ENDPOINT/predict", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(features)
-    });
-
-    const data = await res.json();
-    return data.prediction || "Unknown";
-
-  } catch (e) {
-    return "Azure error";
+  if (recording) {
+    recordedData.push({ time, raw, alpha, beta, emg });
   }
 }
 
-// ================= PIPELINE =================
-async function runMLPipeline() {
+// ================= EMOTION LOGIC =================
+function updateEmotion(alpha, beta, emg) {
 
-  const f = extractFeatures();
+  let eegState =
+    beta > alpha * 1.5 ? "Stressed" :
+    beta > alpha ? "Excited" :
+    "Calm";
 
-  const svmResult = svmPredict(f);
-  document.getElementById("svmOut").innerText = svmResult;
-
-  const azureResult = await azurePredict(f);
-  document.getElementById("azureOut").innerText = azureResult;
-
-  document.getElementById("eegEmotion").innerText =
-    `SVM: ${svmResult} | Azure: ${azureResult}`;
+  document.getElementById("eegEmotion").innerText = eegState;
 }
 
-// ================= AZURE CSV LOADER =================
+// ================= EMG EMOTION (FIXED) =================
+function updateEMGEmotion(emg) {
+
+  let state =
+    emg > 60 ? "Tense" :
+    emg > 30 ? "Active" :
+    "Relaxed";
+
+  document.getElementById("emgEmotion").innerText = state;
+}
+
+// ================= RECORDING TOGGLE (FIXED) =================
+function toggleRecording() {
+
+  const btn = document.getElementById("recordBtn");
+
+  if (!recording) {
+    recordedData = [];
+    recording = true;
+    btn.innerText = "Stop & Download CSV";
+    document.getElementById("status").innerText = "Recording...";
+    return;
+  }
+
+  recording = false;
+  btn.innerText = "Start Recording";
+  downloadCSV();
+}
+
+// ================= CSV =================
+function downloadCSV() {
+  let csv = "time,raw,alpha,beta,emg\n";
+
+  recordedData.forEach(r => {
+    csv += `${r.time},${r.raw},${r.alpha},${r.beta},${r.emg}\n`;
+  });
+
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "data.csv";
+  a.click();
+}
+
+// ================= AZURE PANEL TOGGLE =================
+function toggleAzureUI() {
+  document.getElementById("azurePanel").classList.toggle("hidden");
+}
+
 async function loadAzureCSV() {
-
   const url = document.getElementById("azureUrl").value;
 
   const res = await fetch(url);
@@ -145,55 +143,31 @@ async function loadAzureCSV() {
   const rows = text.split("\n").slice(1);
 
   rows.forEach(r => {
-    const cols = r.split(",");
-
-    const time = parseFloat(cols[0]);
-    const raw = parseFloat(cols[1]);
-    const alpha = parseFloat(cols[2]);
-    const beta = parseFloat(cols[3]);
-    const emg = parseFloat(cols[4]);
-
+    const [time, raw, alpha, beta, emg] = r.split(",").map(Number);
     updateData(raw, alpha, beta, emg);
   });
-
-  alert("Azure CSV loaded");
 }
 
 // ================= DEMO =================
-function randn() {
-  return (Math.random() - 0.5) * 2;
-}
-
 function toggleDemo() {
   demoMode = !demoMode;
-  if (demoMode) runDemo();
+  if (demoMode) demoLoop();
 }
 
-function runDemo() {
-
+function demoLoop() {
   if (!demoMode) return;
 
-  const alpha = 30 + randn()*5;
-  const beta  = 40 + randn()*10;
-  const emg   = 20 + Math.abs(randn()*8);
-
-  const raw = alpha + beta + randn()*5;
+  const alpha = 40 + Math.random()*10;
+  const beta = 30 + Math.random()*15;
+  const emg = 20 + Math.random()*40;
+  const raw = alpha + beta;
 
   updateData(raw, alpha, beta, emg);
 
-  setTimeout(runDemo, 1000 / sampleRate);
+  setTimeout(demoLoop, 100);
 }
 
-// ================= BASIC CONTROLS =================
-function connect() {
-  document.getElementById("status").innerText = "Connected";
-}
-
-function disconnect() {
-  document.getElementById("status").innerText = "Disconnected";
-}
-
+// ================= THEME =================
 function toggleTheme() {
-  darkMode = !darkMode;
   document.body.classList.toggle("dark");
 }
