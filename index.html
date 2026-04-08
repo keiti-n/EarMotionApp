@@ -9,17 +9,23 @@
 <body>
 
 <div class="top-bar">
+
   <button onclick="connect()">Connect</button>
   <button onclick="disconnect()">Disconnect</button>
-  <button onclick="toggleDemo()">Demo Mode</button>
-  <button onclick="toggleTheme()">Toggle Theme</button>
-  <button onclick="startRecording()">Start Recording</button>
-  <button onclick="stopRecording()">Stop & Download CSV</button>
+  <button onclick="toggleDemo()">Demo</button>
+  <button onclick="toggleTheme()">Theme</button>
+
+  <!-- TOGGLE BUTTONS -->
+  <button id="recordBtn" onclick="toggleRecording()">Start Recording</button>
+
+  <button onclick="toggleAzureUI()">Load Data</button>
+
 </div>
 
-<div class="top-bar">
-  <input id="azureUrl" placeholder="Azure CSV URL" style="padding:8px;width:60%">
-  <button onclick="loadAzureCSV()">Load Azure Data</button>
+<!-- hidden Azure loader -->
+<div id="azurePanel" class="hidden">
+  <input id="azureUrl" placeholder="Azure CSV URL">
+  <button onclick="loadAzureCSV()">Import</button>
 </div>
 
 <h1 id="status">Not Connected</h1>
@@ -31,16 +37,14 @@
 
 <div class="container">
 
-  <!-- EEG -->
   <div class="card">
-    <h2>EEG Bands</h2>
+    <h2>EEG</h2>
     <p id="eegEmotion">No Data</p>
     <canvas id="eegChart"></canvas>
   </div>
 
-  <!-- EMG -->
   <div class="card">
-    <h2>EMG Activity</h2>
+    <h2>EMG</h2>
     <p id="emgEmotion">No Data</p>
     <canvas id="emgChart"></canvas>
   </div>
