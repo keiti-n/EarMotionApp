@@ -2,32 +2,40 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Neuro Monitor</title>
+  <title>EarMotion</title>
+
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body { font-family: Arial; padding: 20px; }
-    canvas { max-width: 100%; margin-bottom: 20px; }
-    button { margin: 5px; padding: 10px; }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-<h2>EEG + EMG Monitor</h2>
+<h1>🧠 Neuro Monitor</h1>
 
-<button onclick="connect()">Connect BLE</button>
-<button onclick="toggleDemo()">Toggle Demo</button>
-<button id="recordBtn" onclick="toggleRecording()">Start Recording</button>
+<div class="controls">
+  <button onclick="connect()">Connect BLE</button>
+  <button onclick="toggleDemo()">Demo</button>
+  <button id="recordBtn" onclick="toggleRecording()">Record</button>
+</div>
 
 <p id="status">Disconnected</p>
 
-<h3>EEG Emotion: <span id="eegEmotion">-</span></h3>
-<h3>EMG State: <span id="emgEmotion">-</span></h3>
+<div class="card">
+  <h2>EEG Emotion: <span id="eegEmotion">-</span></h2>
+  <h2>EMG State: <span id="emgEmotion">-</span></h2>
+</div>
 
-<canvas id="eegChart"></canvas>
-<canvas id="emgChart"></canvas>
+<div class="card">
+  <canvas id="eegChart"></canvas>
+</div>
 
-<input type="file" onchange="loadLocalCSV(event)" />
+<div class="card">
+  <canvas id="emgChart"></canvas>
+</div>
+
+<div class="card">
+  <input type="file" onchange="loadLocalCSV(event)">
+</div>
 
 <script src="script.js"></script>
 
