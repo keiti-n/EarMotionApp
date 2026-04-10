@@ -1,49 +1,35 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>EarMotion</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <title>Neuro Monitor</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    canvas { max-width: 100%; margin-bottom: 20px; }
+    button { margin: 5px; padding: 10px; }
+  </style>
 </head>
 
 <body>
 
-<div class="top-bar">
+<h2>EEG + EMG Monitor</h2>
 
-  <button onclick="connect()">Connect</button>
-  <button onclick="disconnect()">Disconnect</button>
-  <button onclick="toggleDemo()">Demo Mode</button>
-  <button onclick="toggleTheme()">Theme</button>
+<button onclick="connect()">Connect BLE</button>
+<button onclick="toggleDemo()">Toggle Demo</button>
+<button id="recordBtn" onclick="toggleRecording()">Start Recording</button>
 
-  <button id="recordBtn" onclick="toggleRecording()">Start Recording</button>
+<p id="status">Disconnected</p>
 
-  <!-- local file loader -->
-  <button onclick="document.getElementById('fileInput').click()">Load CSV</button>
-  <input type="file" id="fileInput" hidden onchange="loadLocalCSV(event)">
+<h3>EEG Emotion: <span id="eegEmotion">-</span></h3>
+<h3>EMG State: <span id="emgEmotion">-</span></h3>
 
-</div>
+<canvas id="eegChart"></canvas>
+<canvas id="emgChart"></canvas>
 
-<h1 id="status">Not Connected</h1>
-
-<div class="ml">
-  <p>EEG: <span id="eegEmotion">-</span></p>
-  <p>EMG: <span id="emgEmotion">-</span></p>
-</div>
-
-<div class="container">
-
-  <div class="card">
-    <h2>EEG</h2>
-    <canvas id="eegChart"></canvas>
-  </div>
-
-  <div class="card">
-    <h2>EMG</h2>
-    <canvas id="emgChart"></canvas>
-  </div>
-
-</div>
+<input type="file" onchange="loadLocalCSV(event)" />
 
 <script src="script.js"></script>
+
 </body>
 </html>
