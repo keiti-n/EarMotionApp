@@ -7,11 +7,9 @@ let alphaData = [];
 let betaData = [];
 let emgData = [];
 let labels = [];
-
 let recordedData = [];
 
 // ================= BLE =================
-let bleDevice;
 let bleCharacteristic;
 let decoder = new TextDecoder();
 
@@ -26,7 +24,7 @@ window.onload = () => {
   initCharts();
 };
 
-// ================= INIT CHARTS =================
+// ================= CHART SETUP =================
 function initCharts() {
 
   eegChart = new Chart(document.getElementById("eegChart"), {
@@ -57,31 +55,46 @@ function initCharts() {
 // ================= BLE CONNECT =================
 async function connect() {
   try {
-    bleDevice = await navigator.bluetooth.requestDevice({
-      filters: [{ name: "EEG_EMG_Monitor" }],
-      optionalServices: ["12345678-1234-1234-1234-123456789abc"]
+    if (!navigator.bluetooth) {
+      alert("Use Chrome for Bluetooth");
+      return;
+    }
+
+    const device = await navigator.bluetooth.requestDevice({
+      acceptAllDevices: true
     });
 
-    const server = await bleDevice.gatt.connect();
-    const service = await server.getPrimaryService("12345678-1234-1234-1234-123456789abc");
+    const server = await device.gatt.connect();
 
-    bleCharacteristic = await service.getCharacteristic("abcd1234-5678-1234-5678-abcdef123456");
+    const service = await server.getPrimaryService(
+      "12345678-1234-1234-1234-123456789abc"
+    );
+
+    bleCharacteristic = await service.getCharacteristic(
+      "abcd1234-5678-1234-5678-abcdef123456"
+    );
 
     await bleCharacteristic.startNotifications();
-    bleCharacteristic.addEventListener("characteristicvaluechanged", handleBLE);
+
+    bleCharacteristic.addEventListener(
+      "characteristicvaluechanged",
+      handleBLE
+    );
 
     document.getElementById("status").innerText = "Connected ✔️";
 
   } catch (err) {
     console.error(err);
-    document.getElementById("status").innerText = "Connection failed";
+    document.getElementById("status").innerText = "Connection failed ❌";
   }
 }
 
-// ================= HANDLE BLE =================
+// ================= BLE DATA =================
 function handleBLE(event) {
   const value = decoder.decode(event.target.value);
   const parts = value.trim().split(",");
+
+  if (parts.length < 3) return;
 
   const raw = Number(parts[1]);
   const emg = Number(parts[2]);
@@ -97,24 +110,21 @@ function handleBLE(event) {
 // ================= FFT =================
 function fft(signal) {
   const N = signal.length;
-  let real = signal.slice();
-  let imag = new Array(N).fill(0);
+  let out = [];
 
   for (let k = 0; k < N; k++) {
-    let sumReal = 0;
-    let sumImag = 0;
+    let re = 0, im = 0;
 
     for (let n = 0; n < N; n++) {
       let angle = (2 * Math.PI * k * n) / N;
-      sumReal += signal[n] * Math.cos(angle);
-      sumImag -= signal[n] * Math.sin(angle);
+      re += signal[n] * Math.cos(angle);
+      im -= signal[n] * Math.sin(angle);
     }
 
-    real[k] = sumReal;
-    imag[k] = sumImag;
+    out.push(Math.sqrt(re * re + im * im));
   }
 
-  return real.map((r, i) => Math.sqrt(r*r + imag[i]*imag[i]));
+  return out;
 }
 
 // ================= BAND POWER =================
@@ -122,32 +132,30 @@ function bandPower(fftData, fs, low, high) {
   const N = fftData.length;
   const freqRes = fs / N;
 
-  let sum = 0;
-  let count = 0;
+  let sum = 0, count = 0;
 
   for (let i = 0; i < N; i++) {
-    const freq = i * freqRes;
-    if (freq >= low && freq <= high) {
+    let f = i * freqRes;
+    if (f >= low && f <= high) {
       sum += fftData[i];
       count++;
     }
   }
 
-  return count > 0 ? sum / count : 0;
+  return count ? sum / count : 0;
 }
 
-// ================= SMOOTHING =================
+// ================= SMOOTH =================
 let alphaHist = [];
 let betaHist = [];
 
-function smooth(value, history, size = 5) {
-  history.push(value);
-  if (history.length > size) history.shift();
-
-  return history.reduce((a, b) => a + b, 0) / history.length;
+function smooth(val, hist, size = 5) {
+  hist.push(val);
+  if (hist.length > size) hist.shift();
+  return hist.reduce((a, b) => a + b, 0) / hist.length;
 }
 
-// ================= PROCESS EEG =================
+// ================= PROCESS =================
 function processEEG(buffer, emg) {
   const fs = 100;
 
@@ -164,24 +172,17 @@ function processEEG(buffer, emg) {
   updateData(raw, alpha, beta, emg);
 }
 
-// ================= SVM CLASSIFIER =================
-const weights = [0.02, 0.04, 0.01];
-const bias = -1;
-
+// ================= SIMPLE ML =================
 function predict(alpha, beta, emg) {
-  const score =
-    weights[0]*alpha +
-    weights[1]*beta +
-    weights[2]*emg +
-    bias;
+  const score = 0.02*alpha + 0.04*beta + 0.01*emg - 1;
 
   if (score > 1) return "Stressed";
   if (score > 0) return "Excited";
   return "Calm";
 }
 
-// ================= UPDATE DATA =================
-function updateData(raw, alpha, beta, emg, groundTruth = "") {
+// ================= UPDATE =================
+function updateData(raw, alpha, beta, emg) {
 
   const time = Date.now() / 1000;
 
@@ -199,15 +200,12 @@ function updateData(raw, alpha, beta, emg, groundTruth = "") {
     labels.shift();
   }
 
-  const eegState = predict(alpha, beta, emg);
+  document.getElementById("eegEmotion").innerText = predict(alpha, beta, emg);
 
-  let emgState =
+  document.getElementById("emgEmotion").innerText =
     emg > 60 ? "Tense" :
     emg > 30 ? "Active" :
     "Relaxed";
-
-  document.getElementById("eegEmotion").innerText = eegState;
-  document.getElementById("emgEmotion").innerText = emgState;
 
   eegChart.data.labels = labels;
   eegChart.data.datasets[0].data = eegData;
@@ -218,18 +216,9 @@ function updateData(raw, alpha, beta, emg, groundTruth = "") {
   emgChart.data.labels = labels;
   emgChart.data.datasets[0].data = emgData;
   emgChart.update();
-
-  if (recording) {
-    recordedData.push({
-      time, raw, alpha, beta, emg,
-      eegEmotion: eegState,
-      emgEmotion: emgState,
-      label: groundTruth
-    });
-  }
 }
 
-// ================= DEMO MODE =================
+// ================= DEMO =================
 function toggleDemo() {
   demoMode = !demoMode;
   if (demoMode) demoLoop();
@@ -238,73 +227,19 @@ function toggleDemo() {
 function demoLoop() {
   if (!demoMode) return;
 
-  const alpha = 30 + Math.random() * 10;
-  const beta = 40 + Math.random() * 15;
-  const emg = 20 + Math.random() * 60;
-  const raw = alpha + beta + Math.random() * 5;
+  const alpha = 30 + Math.random()*10;
+  const beta = 40 + Math.random()*15;
+  const emg = 20 + Math.random()*60;
+  const raw = alpha + beta;
 
   updateData(raw, alpha, beta, emg);
 
   setTimeout(demoLoop, 100);
 }
 
-// ================= RECORDING =================
+// ================= RECORD =================
 function toggleRecording() {
-
-  const btn = document.getElementById("recordBtn");
-
-  if (!recording) {
-    recordedData = [];
-    recording = true;
-    btn.innerText = "Stop & Download CSV";
-    return;
-  }
-
-  recording = false;
-  btn.innerText = "Start Recording";
-  downloadCSV();
-}
-
-// ================= CSV EXPORT =================
-function downloadCSV() {
-
-  let csv = "time,raw,alpha,beta,emg,eegEmotion,emgEmotion,label\n";
-
-  recordedData.forEach(r => {
-    csv += `${r.time},${r.raw},${r.alpha},${r.beta},${r.emg},${r.eegEmotion},${r.emgEmotion},${r.label}\n`;
-  });
-
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "neuro_data.csv";
-  a.click();
-}
-
-// ================= LOAD CSV =================
-function loadLocalCSV(event) {
-
-  const file = event.target.files[0];
-  const reader = new FileReader();
-
-  reader.onload = function(e) {
-
-    const rows = e.target.result.split("\n").slice(1);
-
-    rows.forEach(r => {
-      const cols = r.split(",");
-
-      updateData(
-        Number(cols[1]),
-        Number(cols[2]),
-        Number(cols[3]),
-        Number(cols[4]),
-        cols[cols.length - 1]
-      );
-    });
-  };
-
-  reader.readAsText(file);
+  recording = !recording;
+  document.getElementById("recordBtn").innerText =
+    recording ? "Stop" : "Record";
 }
