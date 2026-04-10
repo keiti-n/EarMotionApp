@@ -1,178 +1,113 @@
 // ================= STATE =================
 let recording = false;
 let demoMode = false;
+let dark = false;
 
 let eegData = [];
+let emgData = [];
 let alphaData = [];
 let betaData = [];
-let emgData = [];
 let labels = [];
-let recordedData = [];
+
+let recorded = [];
 
 // ================= BLE =================
 let bleCharacteristic;
 let decoder = new TextDecoder();
 
 // ================= BUFFERS =================
-let eegBuffer = [];
-let bufferSize = 128;
+let buffer = [];
+const bufferSize = 128;
 
 // ================= CHARTS =================
-let eegChart, emgChart;
+let eegChart, emgChart, eegTrend, emgTrend;
 
-window.onload = () => {
-  initCharts();
-};
+window.onload = () => init();
 
-// ================= CHART SETUP =================
-function initCharts() {
+// ================= INIT =================
+function init() {
+  eegChart = makeChart("eegChart", "EEG");
+  emgChart = makeChart("emgChart", "EMG");
 
-  eegChart = new Chart(document.getElementById("eegChart"), {
+  eegTrend = makeChart("eegTrend", "EEG Trend");
+  emgTrend = makeChart("emgTrend", "EMG Trend");
+}
+
+// ================= CHART =================
+function makeChart(id, label) {
+  return new Chart(document.getElementById(id), {
     type: "line",
     data: {
       labels: [],
-      datasets: [
-        { label: "EEG", data: [], borderWidth: 2, pointRadius: 0 },
-        { label: "Alpha", data: [], borderWidth: 2, pointRadius: 0 },
-        { label: "Beta", data: [], borderWidth: 2, pointRadius: 0 }
-      ]
+      datasets: [{
+        label,
+        data: [],
+        borderWidth: 2,
+        pointRadius: 0
+      }]
     },
-    options: { animation: false }
-  });
-
-  emgChart = new Chart(document.getElementById("emgChart"), {
-    type: "line",
-    data: {
-      labels: [],
-      datasets: [
-        { label: "EMG", data: [], borderWidth: 2, pointRadius: 0 }
-      ]
-    },
-    options: { animation: false }
+    options: {
+      animation: false
+    }
   });
 }
 
 // ================= BLE CONNECT =================
 async function connect() {
   try {
-    if (!navigator.bluetooth) {
-      alert("Use Chrome for Bluetooth");
-      return;
-    }
-
     const device = await navigator.bluetooth.requestDevice({
-      acceptAllDevices: true
+      acceptAllDevices: true,
+      optionalServices: ["12345678-1234-1234-1234-123456789abc"]
     });
 
     const server = await device.gatt.connect();
+    const service = await server.getPrimaryService("12345678-1234-1234-1234-123456789abc");
 
-    const service = await server.getPrimaryService(
-      "12345678-1234-1234-1234-123456789abc"
-    );
-
-    bleCharacteristic = await service.getCharacteristic(
-      "abcd1234-5678-1234-5678-abcdef123456"
-    );
+    bleCharacteristic = await service.getCharacteristic("abcd1234-5678-1234-5678-abcdef123456");
 
     await bleCharacteristic.startNotifications();
+    bleCharacteristic.addEventListener("characteristicvaluechanged", handleBLE);
 
-    bleCharacteristic.addEventListener(
-      "characteristicvaluechanged",
-      handleBLE
-    );
+    document.getElementById("status").innerText = "Connected";
 
-    document.getElementById("status").innerText = "Connected ✔️";
-
-  } catch (err) {
-    console.error(err);
-    document.getElementById("status").innerText = "Connection failed ❌";
+  } catch (e) {
+    document.getElementById("status").innerText = "Connection Failed";
+    console.error(e);
   }
 }
 
 // ================= BLE DATA =================
-function handleBLE(event) {
-  const value = decoder.decode(event.target.value);
-  const parts = value.trim().split(",");
+function handleBLE(e) {
+  const v = decoder.decode(e.target.value);
+  const p = v.split(",");
 
-  if (parts.length < 3) return;
+  if (p.length < 3) return;
 
-  const raw = Number(parts[1]);
-  const emg = Number(parts[2]);
+  const raw = Number(p[1]);
+  const emg = Number(p[2]);
 
-  eegBuffer.push(raw);
+  buffer.push(raw);
 
-  if (eegBuffer.length >= bufferSize) {
-    processEEG(eegBuffer, emg);
-    eegBuffer = [];
+  if (buffer.length >= bufferSize) {
+    process(buffer, emg);
+    buffer = [];
   }
 }
 
-// ================= FFT =================
-function fft(signal) {
-  const N = signal.length;
-  let out = [];
+// ================= SIGNAL PROCESS =================
+function process(buf, emg) {
 
-  for (let k = 0; k < N; k++) {
-    let re = 0, im = 0;
+  const raw = buf[buf.length - 1];
 
-    for (let n = 0; n < N; n++) {
-      let angle = (2 * Math.PI * k * n) / N;
-      re += signal[n] * Math.cos(angle);
-      im -= signal[n] * Math.sin(angle);
-    }
+  const alpha = raw * 0.4;
+  const beta = raw * 0.6;
 
-    out.push(Math.sqrt(re * re + im * im));
-  }
+  const emotion = predict(alpha, beta, emg);
 
-  return out;
+  update(raw, alpha, beta, emg, emotion);
 }
 
-// ================= BAND POWER =================
-function bandPower(fftData, fs, low, high) {
-  const N = fftData.length;
-  const freqRes = fs / N;
-
-  let sum = 0, count = 0;
-
-  for (let i = 0; i < N; i++) {
-    let f = i * freqRes;
-    if (f >= low && f <= high) {
-      sum += fftData[i];
-      count++;
-    }
-  }
-
-  return count ? sum / count : 0;
-}
-
-// ================= SMOOTH =================
-let alphaHist = [];
-let betaHist = [];
-
-function smooth(val, hist, size = 5) {
-  hist.push(val);
-  if (hist.length > size) hist.shift();
-  return hist.reduce((a, b) => a + b, 0) / hist.length;
-}
-
-// ================= PROCESS =================
-function processEEG(buffer, emg) {
-  const fs = 100;
-
-  const spectrum = fft(buffer);
-
-  let alpha = bandPower(spectrum, fs, 8, 13);
-  let beta  = bandPower(spectrum, fs, 13, 30);
-
-  alpha = smooth(alpha, alphaHist);
-  beta  = smooth(beta, betaHist);
-
-  const raw = buffer[buffer.length - 1];
-
-  updateData(raw, alpha, beta, emg);
-}
-
-// ================= SIMPLE ML =================
+// ================= SIMPLE MODEL =================
 function predict(alpha, beta, emg) {
   const score = 0.02*alpha + 0.04*beta + 0.01*emg - 1;
 
@@ -181,65 +116,98 @@ function predict(alpha, beta, emg) {
   return "Calm";
 }
 
-// ================= UPDATE =================
-function updateData(raw, alpha, beta, emg) {
+// ================= UPDATE UI =================
+function update(raw, alpha, beta, emg, emotion) {
 
-  const time = Date.now() / 1000;
+  const t = Date.now()/1000;
 
   eegData.push(raw);
+  emgData.push(emg);
   alphaData.push(alpha);
   betaData.push(beta);
-  emgData.push(emg);
-  labels.push(time);
+  labels.push(t);
 
-  if (labels.length > 120) {
-    eegData.shift();
-    alphaData.shift();
-    betaData.shift();
-    emgData.shift();
-    labels.shift();
-  }
-
-  document.getElementById("eegEmotion").innerText = predict(alpha, beta, emg);
-
-  document.getElementById("emgEmotion").innerText =
-    emg > 60 ? "Tense" :
-    emg > 30 ? "Active" :
-    "Relaxed";
+  trim();
 
   eegChart.data.labels = labels;
   eegChart.data.datasets[0].data = eegData;
-  eegChart.data.datasets[1].data = alphaData;
-  eegChart.data.datasets[2].data = betaData;
   eegChart.update();
 
   emgChart.data.labels = labels;
   emgChart.data.datasets[0].data = emgData;
   emgChart.update();
+
+  document.getElementById("eegEmotion").innerText = emotion;
+  document.getElementById("emgEmotion").innerText =
+    emg > 50 ? "Active" : "Relaxed";
+
+  document.getElementById("overallEmotion").innerText = emotion;
+
+  if (recording) recorded.push({t, raw, alpha, beta, emg, emotion});
 }
 
-// ================= DEMO =================
-function toggleDemo() {
-  demoMode = !demoMode;
-  if (demoMode) demoLoop();
-}
-
-function demoLoop() {
-  if (!demoMode) return;
-
-  const alpha = 30 + Math.random()*10;
-  const beta = 40 + Math.random()*15;
-  const emg = 20 + Math.random()*60;
-  const raw = alpha + beta;
-
-  updateData(raw, alpha, beta, emg);
-
-  setTimeout(demoLoop, 100);
+// ================= TRIM =================
+function trim() {
+  if (labels.length > 150) {
+    labels.shift();
+    eegData.shift();
+    emgData.shift();
+    alphaData.shift();
+    betaData.shift();
+  }
 }
 
 // ================= RECORD =================
 function toggleRecording() {
   recording = !recording;
-  document.getElementById("recordBtn").innerText =
-    recording ? "Stop" : "Record";
 }
+
+// ================= DOWNLOAD =================
+function downloadCSV() {
+  let csv = "t,raw,alpha,beta,emg,emotion\n";
+
+  recorded.forEach(r => {
+    csv += `${r.t},${r.raw},${r.alpha},${r.beta},${r.emg},${r.emotion}\n`;
+  });
+
+  const blob = new Blob([csv], {type:"text/csv"});
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "data.csv";
+  a.click();
+}
+
+// ================= FILE LOAD =================
+function loadLocalCSV(e) {
+  const f = e.target.files[0];
+  const r = new FileReader();
+
+  r.onload = ev => {
+    const rows = ev.target.result.split("\n").slice(1);
+
+    rows.forEach(row => {
+      const c = row.split(",");
+      update(
+        Number(c[1]),
+        Number(c[2]),
+        Number(c[3]),
+        Number(c[4]),
+        c[5]
+      );
+    });
+  };
+
+  r.readAsText(f);
+}
+
+// ================= THEME =================
+function toggleTheme() {
+  dark = !dark;
+  document.body.classList.toggle("dark");
+}
+
+// placeholder
+function toggleDemo() {}
+function setView() {}
