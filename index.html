@@ -1,43 +1,63 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>EarMotion</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Neuro Monitor</title>
 
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="style.css">
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
 
-<h1>🧠 Neuro Monitor</h1>
+  <!-- ================= HEADER ================= -->
+  <h1>🧠 Neuro Monitor</h1>
 
-<div class="controls">
-  <button onclick="connect()">Connect BLE</button>
-  <button onclick="toggleDemo()">Demo</button>
-  <button id="recordBtn" onclick="toggleRecording()">Record</button>
-</div>
+  <!-- ================= CONTROLS ================= -->
+  <div class="controls">
+    <button onclick="connect()">Connect BLE</button>
+    <button onclick="toggleDemo()">Demo Mode</button>
+    <button id="recordBtn" onclick="toggleRecording()">Record</button>
+  </div>
 
-<p id="status">Disconnected</p>
+  <!-- ================= STATUS ================= -->
+  <p id="status">Disconnected</p>
 
-<div class="card">
-  <h2>EEG Emotion: <span id="eegEmotion">-</span></h2>
-  <h2>EMG State: <span id="emgEmotion">-</span></h2>
-</div>
+  <!-- ================= EMOTION SUMMARY ================= -->
+  <div class="card">
+    <h2>EEG Emotion: <span id="eegEmotion">-</span></h2>
+    <h2>EMG State: <span id="emgEmotion">-</span></h2>
+  </div>
 
-<div class="card">
-  <canvas id="eegChart"></canvas>
-</div>
+  <!-- ================= MAIN SPLIT LAYOUT ================= -->
+  <div class="split">
 
-<div class="card">
-  <canvas id="emgChart"></canvas>
-</div>
+    <!-- ================= EEG PANEL ================= -->
+    <div class="card">
+      <h2>EEG Signal</h2>
+      <canvas id="eegChart"></canvas>
+    </div>
 
-<div class="card">
-  <input type="file" onchange="loadLocalCSV(event)">
-</div>
+    <!-- ================= EMG PANEL ================= -->
+    <div class="card">
+      <h2>EMG Signal</h2>
+      <canvas id="emgChart"></canvas>
+    </div>
 
-<script src="script.js"></script>
+  </div>
+
+  <!-- ================= DATA INPUT ================= -->
+  <div class="card">
+    <h2>Load CSV</h2>
+    <input type="file" onchange="loadLocalCSV(event)" />
+  </div>
+
+  <!-- ================= SCRIPT ================= -->
+  <script src="script.js"></script>
 
 </body>
 </html>
