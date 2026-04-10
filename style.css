@@ -1,61 +1,51 @@
 body {
-  font-family: Arial;
-  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #0f172a;
+  color: white;
   text-align: center;
-  background: #f7f3ee;
-}
-
-.top-bar {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px;
-}
-
-button {
-  padding: 8px 12px;
-  border-radius: 10px;
-  border: none;
-  background: #e7dfd5;
-  cursor: pointer;
-}
-
-.container {
-  display: flex;
-  gap: 20px;
-  justify-content: center;
+  margin: 0;
   padding: 20px;
 }
 
-.card {
-  width: 45%;
-  background: white;
-  padding: 15px;
-  border-radius: 15px;
+h1 {
+  margin-bottom: 10px;
 }
 
-/* MOBILE */
-@media (max-width: 768px) {
-  .container {
-    flex-direction: column;
-  }
+.controls {
+  margin-bottom: 15px;
+}
 
-  .card {
-    width: 90%;
-  }
+button {
+  background: #3b82f6;
+  border: none;
+  padding: 10px 15px;
+  margin: 5px;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+}
 
-  .top-bar button {
-    flex: 1 1 30%;
-  }
+button:hover {
+  background: #2563eb;
+}
+
+#status {
+  margin: 10px;
+  font-weight: bold;
+}
+
+.card {
+  background: #1e293b;
+  padding: 15px;
+  border-radius: 12px;
+  margin: 15px auto;
+  max-width: 800px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
 
 canvas {
-  width: 100% !important;
-  height: 250px !important;
-}
-
-.dark {
-  background: #111;
-  color: white;
+  background: white;
+  border-radius: 10px;
+  padding: 10px;
 }
