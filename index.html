@@ -9,13 +9,19 @@
 <body>
 
 <div class="top-bar">
-  <button onclick="connect()">Connect</button>
-  <button onclick="disconnect()">Disconnect</button>
-  <button onclick="toggleDemo()">Demo Mode</button>
-  <button onclick="toggleTheme()">Toggle Theme</button>
-  <button onclick="startRecording()">Start Recording</button>
-  <button onclick="stopRecording()">Stop & Download CSV</button>
-</div>
+  <div class="leftSection">
+    <img src="logo.png" class="logo">
+    <span class="title">EarMotion</span>
+  </div>
+
+  <div class="controls">
+    <button onclick="connect()">Connect</button>
+    <button onclick="disconnect()">Disconnect</button>
+    <button onclick="toggleDemo()">Demo Mode</button>
+    <button onclick="toggleTheme()">Toggle Theme</button>
+    <button onclick="startRecording()">Start Recording</button>
+    <button onclick="stopRecording()">Stop & Download CSV</button>
+  </div>
 
 <h1 id="status">Not Connected</h1>
 
