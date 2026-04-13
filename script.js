@@ -53,11 +53,19 @@ function toggleRecording() {
 function showEEGRealtime() {
   document.getElementById("eegRealtime").style.display = "block";
   document.getElementById("eegTrends").style.display = "none";
+
+  const buttons = document.querySelectorAll(".toggle button");
+  buttons[0].classList.add("active");
+  buttons[1].classList.remove("active");
 }
 
 function showEEGTrends() {
   document.getElementById("eegRealtime").style.display = "none";
   document.getElementById("eegTrends").style.display = "block";
+
+  const buttons = document.querySelectorAll(".toggle button");
+  buttons[1].classList.add("active");
+  buttons[0].classList.remove("active");
 }
 
 // ================= DATA =================
@@ -352,6 +360,24 @@ function toggleTheme() {
     logo.src = "assets/images/logo_dark.png";
   } else {
     logo.src = "assets/images/logo_light.png";
-  }
+
+  updateChartTheme();
 }
 
+function updateChartTheme() {
+  const textColor = darkMode ? "#E8E3DC" : "#3E3A34";
+  const gridColor = darkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)";
+  [eegChart, emgChart].forEach(chart => {
+    chart.options.scales.x.ticks.color = textColor;
+    chart.options.scales.y.ticks.color = textColor;
+    chart.options.scales.x.grid.color = gridColor;
+    chart.options.scales.y.grid.color = gridColor;
+    chart.options.plugins.legend.labels.color = textColor;
+    chart.update();
+  });
+}
+
+
+window.onload = () => {
+  showEEGRealtime(); // default active tab
+};
