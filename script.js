@@ -26,6 +26,46 @@ let recordedData = [];
 let startTime = 0;
 
 // ================= CHARTS =================
+window.onload = () => {
+  const eegChart = new Chart(document.getElementById("eegChart"), {
+    type: "line",
+    data: {
+      labels: [],
+      datasets: [
+        { label: "Raw EEG", data: [], borderColor:"#CDB4DB", borderWidth: 2, pointRadius: 0 },
+        { label: "Alpha", data: [], borderColor:"#A2D2FF", borderWidth: 2, pointRadius: 0 },
+        { label: "Beta", data: [], borderColor:"#FFAFCC", borderWidth: 2, pointRadius: 0 }
+      ]
+    },
+    options: {
+      animation: false,
+      responsive: true,
+      scales: {
+        x: { display: false },
+        y: { beginAtZero: false }
+      }
+    }
+  });
+  
+  const emgChart = new Chart(document.getElementById("emgChart"), {
+    type: "line",
+    data: {
+      labels: [],
+      datasets: [
+        { label: "EMG", data: [], borderColor:"#BDE0FE", borderWidth: 2, pointRadius: 0 }
+      ]
+    },
+    options: {
+      animation: false,
+      responsive: true,
+      scales: {
+        x: { display: false },
+        y: { beginAtZero: false }
+      }
+    }
+  });
+  
+};
 const eegChart = new Chart(document.getElementById("eegChart"), {
   type: "line",
   data: {
@@ -209,7 +249,7 @@ async function connect() {
 
   } catch (err) {
     console.error(err);
-    alert("ERROR: " + err.message);
+    //alert("ERROR: " + err.message);
     document.getElementById("status").innerText = "Connection failed";
   }
 }
