@@ -186,9 +186,32 @@ function updateEmotion(alpha, beta, emg) {
 
 // ================= CONNECT =================
 async function connect() {
-  document.getElementById("status").innerText = "Connected";
-  connected = true;
-  demoMode = false;
+  try {
+
+    if (!navigator.bluetooth) {
+      alert("Bluetooth not supported in this browser");
+      return;
+    }
+
+    const device = await navigator.bluetooth.requestDevice({
+      acceptAllDevices: true,
+      optionalServices: ["12345678-1234-1234-1234-123456789abc"]
+    });
+
+    alert("Device selected: " + device.name);
+
+    const server = await device.gatt.connect();
+    const service = await server.getPrimaryService("12345678-1234-1234-1234-123456789abc");
+    const characteristic = await service.getCharacteristic("abcd1234-5678-1234-5678-abcdef123456");
+    await characteristic.startNotifications();
+    characteristic.addEventListener("characteristicvaluechanged", handleBLE);
+    document.getElementById("status").innerText = "Connected";
+
+  } catch (err) {
+    console.error(err);
+    alert("ERROR: " + err.message);
+    document.getElementById("status").innerText = "Connection failed";
+  }
 }
 
 function disconnect() {
