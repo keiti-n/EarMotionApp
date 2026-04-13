@@ -254,4 +254,13 @@ function downloadCSV() {
 function toggleTheme() {
   darkMode = !darkMode;
   document.body.classList.toggle("dark");
+
+  const logo = document.getElementById("logo");
+
+  if (darkMode) {
+    logo.src = "logo_dark.png";
+  } else {
+    logo.src = "logo_light.png";
+  }
 }
+
