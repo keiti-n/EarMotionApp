@@ -286,7 +286,6 @@ async function connect() {
     console.log("Connection cancelled or failed:", err.message);
     //alert("ERROR: " + err.message);
     document.getElementById("status").innerText = "Not Connected";
-    disconnect();
     return false;
   }
 }
