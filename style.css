@@ -55,6 +55,41 @@ button:hover {
   box-shadow: 0px 6px 18px rgba(0,0,0,0.08);
 }
 
+/* Tabs */
+.toggle {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.toggle button {
+  background: #E7DFD5;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: 0.2s;
+}
+
+.toggle button.active {
+  opacity: 1;
+  background: #CDB4DB; /* pastel highlight */
+  font-weight: 600;
+}
+
+table {
+  width: 100%;
+  margin-top: 10px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+th, td {
+  padding: 6px;
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+}
+
 /* Dark Mode */
 .dark {
   background: #0B0B0B;
