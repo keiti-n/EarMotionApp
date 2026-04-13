@@ -1,126 +1,61 @@
-/* ================= BASE ================= */
 body {
+  font-family: "Segoe UI";
+  background: #F7F3EE;
+  color: #3E3A34;
   margin: 0;
-  font-family: "Segoe UI", Arial;
-  background: #ececec;
-  color: #111;
+  text-align: center;
+  transition: 0.3s;
 }
 
-/* ================= TOP BAR ================= */
-.topbar {
-  background: #2b2b2b;
-  color: white;
+.top-bar {
+  padding: 15px;
+}
+
+button {
+  background: #E7DFD5;
+  border: none;
+  padding: 8px 14px;
+  margin: 5px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+button:hover {
+  transform: scale(1.05);
+}
+
+.container {
   display: flex;
-  justify-content: space-between;
-  padding: 8px 12px;
-  align-items: center;
+  justify-content: space-around;
+  padding: 20px;
 }
 
-.title {
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.controls button {
-  background: #3a3a3a;
-  color: white;
-  border: 1px solid #555;
-  padding: 4px 8px;
-  margin: 0 3px;
-  border-radius: 0px;
-}
-
-/* ================= STATUS ================= */
-#status {
-  background: #ddd;
-  padding: 6px 10px;
-  font-size: 12px;
-}
-
-/* ================= OVERALL ================= */
-.overall {
-  padding: 10px;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-/* ================= GRID ================= */
-.grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  padding: 8px;
-}
-
-/* ================= PANELS ================= */
-.panel {
+.card {
   background: white;
-  border: 1px solid #bbb;
-  padding: 8px;
+  border-radius: 18px;
+  padding: 20px;
+  width: 45%;
+  box-shadow: 0px 6px 18px rgba(0,0,0,0.08);
 }
 
-/* header */
-.panelHeader {
-  display: flex;
-  justify-content: space-between;
-  font-weight: 600;
-  margin-bottom: 5px;
-}
-
-/* toggle buttons */
-.toggleRow {
-  margin-bottom: 5px;
-}
-
-.toggleRow button {
-  font-size: 12px;
-  border: 1px solid #888;
-  background: #eee;
-  border-radius: 0;
-}
-
-/* ================= CHART ================= */
-canvas {
-  width: 100% !important;
-  height: 220px !important;
-  border: 1px solid #ccc;
-}
-
-/* ================= TABLE ================= */
-table {
-  width: 100%;
-  margin-top: 6px;
-  border-collapse: collapse;
-  font-size: 12px;
-}
-
-th, td {
-  border: 1px solid #ccc;
-  padding: 4px;
-}
-
-/* ================= DARK MODE ================= */
+/* ================= DARK MODE (TRUE BLACK) ================= */
 .dark {
-  background: #1a1a1a;
-  color: #ddd;
+  background: #0B0B0B;
+  color: #E8E3DC;
 }
 
-.dark .panel {
-  background: #222;
-  border: 1px solid #444;
+.dark .card {
+  background: #1C1C1C;
+  box-shadow: 0px 6px 18px rgba(0,0,0,0.5);
 }
 
-.dark canvas,
-.dark table,
-.dark th,
-.dark td {
-  border-color: #444;
+.dark button {
+  background: #2A2A2A;
+  color: white;
 }
 
-.dark #status {
-  background: #111;
-}
-
-.dark .topbar {
-  background: #000;
+/* canvas glow feel */
+canvas {
+  border-radius: 10px;
 }
