@@ -15,12 +15,11 @@
   </div>
 
   <div class="controls">
-    <button onclick="connect()">Connect</button>
-    <button onclick="disconnect()">Disconnect</button>
+    <button id="connectBtn" onclick="toggleConnection()">Connect</button>
     <button onclick="toggleDemo()">Demo Mode</button>
     <button onclick="toggleTheme()">Toggle Theme</button>
-    <button onclick="startRecording()">Start Recording</button>
-    <button onclick="stopRecording()">Stop & Download CSV</button>
+    <button id="recordBtn" onclick="toggleRecording()">Start Recording</button>
+    <button onclick="downloadCSV()">Download CSV</button>
   </div>
 </div>
   
