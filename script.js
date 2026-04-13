@@ -11,6 +11,39 @@ let sampleRate = 10;
 let windowSeconds = 10;
 let maxPoints = sampleRate * windowSeconds;
 
+
+// ================= CHANGING BUTTONS =================
+async function toggleConnection() {
+  const btn = document.getElementById("connectBtn");
+
+  if (!connected) {
+    await connect();
+    connected = true;
+    btn.innerText = "Disconnect";
+  } else {
+    disconnect();
+    connected = false;
+    btn.innerText = "Connect";
+  }
+}
+
+function toggleRecording() {
+  const btn = document.getElementById("recordBtn");
+
+  if (!connected && !demoMode) {
+    alert("Please connect device or enable demo mode");
+    return;
+  }
+
+  if (!recording) {
+    startRecording();
+    btn.innerText = "Stop Recording";
+  } else {
+    stopRecording();
+    btn.innerText = "Start Recording";
+  }
+}
+
 // ================= DATA =================
 let eegData = [];
 let alphaData = [];
@@ -219,7 +252,7 @@ function updateEmotion(alpha, beta, emg) {
   document.getElementById("status").innerText = "State: " + state;
   document.getElementById("eegEmotion").innerText = "EEG: " + currentEmotion;
   document.getElementById("emgEmotion").innerText =
-    "EMG: " + (state === "Stressed" ? "High Activity"
+    "EMG: " + (state === "Stressed" ? "Active"
       : state === "Excited" ? "Active"
       : "Relaxed");
 }
@@ -270,8 +303,7 @@ function startRecording() {
 
 function stopRecording() {
   recording = false;
-  downloadCSV();
-  document.getElementById("status").innerText = "Saved CSV";
+  document.getElementById("status").innerText = "Stopped Recording";
 }
 
 function downloadCSV() {
@@ -286,7 +318,7 @@ function downloadCSV() {
 
   const a = document.createElement("a");
   a.href = url;
-  a.download = "neuro_data.csv";
+  a.download = "EarMotion_data.csv";
   a.click();
 }
 
