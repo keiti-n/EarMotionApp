@@ -1,151 +1,234 @@
+const DEVICE_NAME = "XIAO-C3-BLE";
+const SERVICE_UUID = "12345678-1234-5678-1234-56789abcdef0";
+const CHARACTERISTIC_UUID = "12345678-1234-5678-1234-56789abcdef1";
+
 // ================= STATE =================
+let connected = false;
+let demoMode = false;
+let darkMode = false;
+
+let sampleRate = 10;
+let windowSeconds = 10;
+let maxPoints = sampleRate * windowSeconds;
+
+// ================= DATA =================
 let eegData = [];
+let alphaData = [];
+let betaData = [];
 let emgData = [];
 let labels = [];
+
+let currentEmotion = "Calm";
+
+// ================= RECORDING =================
 let recording = false;
-let dark = false;
-let recorded = [];
+let recordedData = [];
+let startTime = 0;
 
 // ================= CHARTS =================
-let eegChart, emgChart;
+const eegChart = new Chart(document.getElementById("eegChart"), {
+  type: "line",
+  data: {
+    labels: [],
+    datasets: [
+      { label: "Raw EEG", data: [], borderColor:"#CDB4DB", borderWidth: 2, pointRadius: 0 },
+      { label: "Alpha", data: [], borderColor:"#A2D2FF", borderWidth: 2, pointRadius: 0 },
+      { label: "Beta", data: [], borderColor:"#FFAFCC", borderWidth: 2, pointRadius: 0 }
+    ]
+  },
+  options: {
+    animation: false,
+    responsive: true,
+    scales: {
+      x: { display: false },
+      y: { beginAtZero: false }
+    }
+  }
+});
 
-window.onload = () => {
-  eegChart = makeChart("eegChart", "EEG");
-  emgChart = makeChart("emgChart", "EMG");
-};
+const emgChart = new Chart(document.getElementById("emgChart"), {
+  type: "line",
+  data: {
+    labels: [],
+    datasets: [
+      { label: "EMG", data: [], borderColor:"#BDE0FE", borderWidth: 2, pointRadius: 0 }
+    ]
+  },
+  options: {
+    animation: false,
+    responsive: true,
+    scales: {
+      x: { display: false },
+      y: { beginAtZero: false }
+    }
+  }
+});
 
-// ================= CHART =================
-function makeChart(id, label) {
-  return new Chart(document.getElementById(id), {
-    type: "line",
-    data: {
-      labels: [],
-      datasets: [{
-        label,
-        data: [],
-        borderWidth: 2,
-        pointRadius: 0
-      }]
-    },
-    options: { animation: false }
-  });
+// ================= DEMO =================
+function randn() {
+  return (Math.random() - 0.5) * 2;
 }
 
-// ================= BLE =================
-async function connect() {
-  try {
-    const device = await navigator.bluetooth.requestDevice({
-      acceptAllDevices: true
-    });
+function toggleDemo() {
+  demoMode = !demoMode;
 
-    const server = await device.gatt.connect();
-    const service = await server.getPrimaryService("12345678-1234-1234-1234-123456789abc");
-
-    const ch = await service.getCharacteristic("abcd1234-5678-1234-5678-abcdef123456");
-
-    await ch.startNotifications();
-    ch.addEventListener("characteristicvaluechanged", handleBLE);
-
-    document.getElementById("status").innerText = "Connected";
-
-  } catch (e) {
-    document.getElementById("status").innerText = "Failed";
+  if (demoMode) {
+    connected = false;
+    document.getElementById("status").innerText = "Demo Mode";
+    runDemo();
   }
 }
 
-// ================= DATA =================
-function handleBLE(e) {
-  const v = new TextDecoder().decode(e.target.value);
-  const p = v.split(",");
+function runDemo() {
+  if (!demoMode) return;
 
-  if (p.length < 3) return;
+  const states = ["Calm","Excited","Stressed","Sad"];
 
-  const eeg = Number(p[1]);
-  const emg = Number(p[2]);
+  if (Math.random() < 0.02) {
+    currentEmotion = states[Math.floor(Math.random() * states.length)];
+  }
 
-  update(eeg, emg);
+  let alpha, beta, emg;
+
+  switch(currentEmotion) {
+    case "Calm":
+      alpha = 45 + randn()*6;
+      beta  = 15 + randn()*4;
+      emg   = 10 + Math.abs(randn()*5);
+      break;
+
+    case "Excited":
+      alpha = 35 + randn()*6;
+      beta  = 35 + randn()*8;
+      emg   = 25 + Math.abs(randn()*8);
+      break;
+
+    case "Stressed":
+      alpha = 15 + randn()*5;
+      beta  = 60 + randn()*10;
+      emg   = 55 + Math.abs(randn()*12);
+      break;
+
+    case "Sad":
+      alpha = 25 + randn()*5;
+      beta  = 25 + randn()*5;
+      emg   = 20 + Math.abs(randn()*6);
+      break;
+  }
+
+  const raw = alpha + beta + randn()*10;
+
+  updateData(raw, alpha, beta, emg);
+
+  setTimeout(runDemo, 1000 / sampleRate);
 }
 
-// ================= UPDATE =================
-function update(eeg, emg) {
+// ================= DATA =================
+function updateData(raw, alpha, beta, emg) {
 
-  const t = Date.now() / 1000;
+  const time = Date.now() / 1000;
 
-  eegData.push(eeg);
+  eegData.push(raw);
+  alphaData.push(alpha);
+  betaData.push(beta);
   emgData.push(emg);
-  labels.push(t);
+  labels.push(time);
 
-  if (labels.length > 200) {
+  while (labels.length > maxPoints) {
     eegData.shift();
+    alphaData.shift();
+    betaData.shift();
     emgData.shift();
     labels.shift();
   }
 
   eegChart.data.labels = labels;
   eegChart.data.datasets[0].data = eegData;
+  eegChart.data.datasets[1].data = alphaData;
+  eegChart.data.datasets[2].data = betaData;
   eegChart.update();
 
   emgChart.data.labels = labels;
   emgChart.data.datasets[0].data = emgData;
   emgChart.update();
 
-  const emotion =
-    eeg > 70 ? "Stressed" :
-    eeg > 40 ? "Excited" : "Calm";
-
-  document.getElementById("eegEmotion").innerText = emotion;
-  document.getElementById("emgEmotion").innerText = emg > 50 ? "Active" : "Relaxed";
-  document.getElementById("overallEmotion").innerText = emotion;
+  updateEmotion(alpha, beta, emg);
 
   if (recording) {
-    recorded.push({ t, eeg, emg, emotion });
+    recordedData.push({
+      time: (Date.now() - startTime) / 1000,
+      rawEEG: raw,
+      alpha,
+      beta,
+      emg,
+      emotion: currentEmotion
+    });
   }
 }
 
-// ================= RECORD =================
-function toggleRecording() {
-  recording = !recording;
+// ================= EMOTION LOGIC =================
+function updateEmotion(alpha, beta, emg) {
+
+  let state = currentEmotion;
+
+  if (beta > alpha * 1.5) state = "Stressed";
+  else if (beta > alpha * 1.1) state = "Excited";
+  else if (alpha > beta) state = "Calm";
+  else state = "Sad";
+
+  document.getElementById("status").innerText = "State: " + state;
+  document.getElementById("eegEmotion").innerText = "EEG: " + currentEmotion;
+  document.getElementById("emgEmotion").innerText =
+    "EMG: " + (state === "Stressed" ? "High Activity"
+      : state === "Excited" ? "Active"
+      : "Relaxed");
 }
 
-// ================= DOWNLOAD =================
+// ================= CONNECT =================
+async function connect() {
+  document.getElementById("status").innerText = "Connected";
+  connected = true;
+  demoMode = false;
+}
+
+function disconnect() {
+  connected = false;
+  demoMode = false;
+  document.getElementById("status").innerText = "Disconnected";
+}
+
+// ================= RECORDING =================
+function startRecording() {
+  recordedData = [];
+  recording = true;
+  startTime = Date.now();
+  document.getElementById("status").innerText = "Recording...";
+}
+
+function stopRecording() {
+  recording = false;
+  downloadCSV();
+  document.getElementById("status").innerText = "Saved CSV";
+}
+
 function downloadCSV() {
-  let csv = "t,eeg,emg,emotion\n";
-  recorded.forEach(r => {
-    csv += `${r.t},${r.eeg},${r.emg},${r.emotion}\n`;
+  let csv = "time,rawEEG,alpha,beta,emg,emotion\n";
+
+  recordedData.forEach(r => {
+    csv += `${r.time},${r.rawEEG},${r.alpha},${r.beta},${r.emg},${r.emotion}\n`;
   });
 
-  const blob = new Blob([csv]);
+  const blob = new Blob([csv], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
 
   const a = document.createElement("a");
   a.href = url;
-  a.download = "data.csv";
+  a.download = "neuro_data.csv";
   a.click();
-}
-
-// ================= FILE LOAD =================
-function loadLocalCSV(e) {
-  const r = new FileReader();
-
-  r.onload = ev => {
-    const rows = ev.target.result.split("\n").slice(1);
-
-    rows.forEach(row => {
-      const c = row.split(",");
-      update(Number(c[1]), Number(c[2]));
-    });
-  };
-
-  r.readAsText(e.target.files[0]);
 }
 
 // ================= THEME =================
 function toggleTheme() {
-  dark = !dark;
+  darkMode = !darkMode;
   document.body.classList.toggle("dark");
 }
-
-// placeholders
-function toggleDemo() {}
-function setEEGView() {}
-function setEMGView() {}
