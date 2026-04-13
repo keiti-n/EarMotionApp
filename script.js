@@ -49,6 +49,17 @@ function toggleRecording() {
   }
 }
 
+// ================= TABS =================
+function showEEGRealtime() {
+  document.getElementById("eegRealtime").style.display = "block";
+  document.getElementById("eegTrends").style.display = "none";
+}
+
+function showEEGTrends() {
+  document.getElementById("eegRealtime").style.display = "none";
+  document.getElementById("eegTrends").style.display = "block";
+}
+
 // ================= DATA =================
 let eegData = [];
 let alphaData = [];
