@@ -29,11 +29,37 @@
 
   <!-- EEG CARD -->
   <div class="card">
-    <h2>EEG Bands</h2>
-    <p id="eegEmotion">No Data</p>
+  <h2>EEG Bands</h2>
+  <p id="eegEmotion">No Data</p>
+
+  <div class="toggle">
+    <button onclick="showEEGRealtime()">Realtime</button>
+    <button onclick="showEEGTrends()">Daily Trends</button>
+  </div>
+
+  <!-- REALTIME VIEW -->
+  <div id="eegRealtime">
     <canvas id="eegChart"></canvas>
   </div>
 
+  <!-- TRENDS VIEW (hidden for now) -->
+  <div id="eegTrends" style="display:none;">
+    <canvas id="eegTrendChart"></canvas>
+
+    <table id="eegTable">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Avg Power</th>
+          <th>Emotion</th>
+          <th>Fluctuations</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+  
   <!-- EMG CARD -->
   <div class="card">
     <h2>EMG Activity</h2>
