@@ -11,6 +11,22 @@ body {
   padding: 15px;
 }
 
+.leftSection {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo {
+  height: 28px;   /* resize */
+  width: auto;    /* keeps proportions */
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
 button {
   background: #E7DFD5;
   border: none;
@@ -39,7 +55,7 @@ button:hover {
   box-shadow: 0px 6px 18px rgba(0,0,0,0.08);
 }
 
-/* ================= DARK MODE (TRUE BLACK) ================= */
+/* Dark Mode */
 .dark {
   background: #0B0B0B;
   color: #E8E3DC;
