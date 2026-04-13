@@ -258,9 +258,9 @@ function toggleTheme() {
   const logo = document.getElementById("logo");
 
   if (darkMode) {
-    logo.src = "logo_dark.png";
+    logo.src = "assets/images/logo_dark.png";
   } else {
-    logo.src = "logo_light.png";
+    logo.src = "assets/images/logo_light.png";
   }
 }
 
