@@ -1,89 +1,38 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
   <title>EarMotion</title>
-
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
 
-<!-- ================= TOP BAR ================= -->
-<div class="topbar">
-  <div class="title">EarMotion</div>
-
-  <div class="controls">
-    <button onclick="connect()">Connect</button>
-    <button onclick="toggleDemo()">Demo</button>
-    <button onclick="toggleTheme()">Theme</button>
-    <button onclick="toggleRecording()">Record</button>
-    <button onclick="downloadCSV()">Download</button>
-    <input type="file" onchange="loadLocalCSV(event)">
-  </div>
+<div class="top-bar">
+  <button onclick="connect()">Connect</button>
+  <button onclick="disconnect()">Disconnect</button>
+  <button onclick="toggleDemo()">Demo Mode</button>
+  <button onclick="toggleTheme()">Toggle Theme</button>
+  <button onclick="startRecording()">Start Recording</button>
+  <button onclick="stopRecording()">Stop & Download CSV</button>
 </div>
 
-<div id="status">Disconnected</div>
+<h1 id="status">Not Connected</h1>
 
-<!-- ================= OVERALL ================= -->
-<div class="overall">
-  Overall Emotion: <span id="overallEmotion">-</span>
-</div>
+<div class="container">
 
-<!-- ================= GRID ================= -->
-<div class="grid">
-
-  <!-- ================= EEG ================= -->
-  <div class="panel">
-
-    <div class="panelHeader">
-      EEG
-      <span id="eegEmotion">-</span>
-    </div>
-
-    <div class="toggleRow">
-      <button onclick="setEEGView('rt')">Realtime</button>
-      <button onclick="setEEGView('trend')">Trends</button>
-    </div>
-
+  <!-- EEG CARD -->
+  <div class="card">
+    <h2>EEG Bands</h2>
+    <p id="eegEmotion">No Data</p>
     <canvas id="eegChart"></canvas>
-
-    <table id="eegTable">
-      <thead>
-        <tr>
-          <th>Date</th><th>Power</th><th>Emotion</th><th>Fluct</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-
   </div>
 
-  <!-- ================= EMG ================= -->
-  <div class="panel">
-
-    <div class="panelHeader">
-      EMG
-      <span id="emgEmotion">-</span>
-    </div>
-
-    <div class="toggleRow">
-      <button onclick="setEMGView('rt')">Realtime</button>
-      <button onclick="setEMGView('trend')">Trends</button>
-    </div>
-
+  <!-- EMG CARD -->
+  <div class="card">
+    <h2>EMG Activity</h2>
+    <p id="emgEmotion">No Data</p>
     <canvas id="emgChart"></canvas>
-
-    <table id="emgTable">
-      <thead>
-        <tr>
-          <th>Date</th><th>Power</th><th>Emotion</th><th>Fluct</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-
   </div>
 
 </div>
