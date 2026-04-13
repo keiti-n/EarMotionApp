@@ -271,19 +271,22 @@ async function connect() {
       optionalServices: ["12345678-1234-1234-1234-123456789abc"]
     });
 
-    alert("Device selected: " + device.name);
-
+    if (!device) return false;
+    //alert("Device selected: " + device.name);
+  
     const server = await device.gatt.connect();
     const service = await server.getPrimaryService("12345678-1234-1234-1234-123456789abc");
     const characteristic = await service.getCharacteristic("abcd1234-5678-1234-5678-abcdef123456");
     await characteristic.startNotifications();
     characteristic.addEventListener("characteristicvaluechanged", handleBLE);
     document.getElementById("status").innerText = "Connected";
+    return true;
 
   } catch (err) {
-    console.error(err);
+    console.log("Connection cancelled or failed:", err.message);
     //alert("ERROR: " + err.message);
-    document.getElementById("status").innerText = "Connection failed";
+    document.getElementById("status").innerText = "Not Connected";
+    return false;
   }
 }
 
