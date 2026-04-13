@@ -121,7 +121,7 @@ const emgChart = new Chart(document.getElementById("emgChart"), {
   }
 });
 
-// ================= DEMO =================
+// ================= REALTIME DEMO =================
 function randn() {
   return (Math.random() - 0.5) * 2;
 }
@@ -180,7 +180,7 @@ function runDemo() {
   setTimeout(runDemo, 1000 / sampleRate);
 }
 
-// ================= DATA =================
+// ================= REALTIME =================
 function updateData(raw, alpha, beta, emg) {
 
   const time = Date.now() / 1000;
@@ -309,6 +309,141 @@ function downloadCSV() {
   a.click();
 }
 
+// ================= Daily Trends =================
+let dataFolderHandle = null;  //Select folder for browser to read data from
+
+async function selectDataFolder() {
+  try {
+    dataFolderHandle = await window.showDirectoryPicker();
+    alert("Folder selected!");
+    loadTrendData();
+  } catch (err) {
+    console.log("Folder selection cancelled");
+  }
+}
+
+async function loadTrendData() {
+  if (!dataFolderHandle) return;
+
+  let files = [];
+
+  for await (const entry of dataFolderHandle.values()) {
+    if (entry.kind === "file" && entry.name.endsWith(".csv")) {
+      files.push(entry);
+    }
+  }
+
+  if (files.length === 0) {
+    setNoDataState();
+    return;
+  }
+
+  const dailyMap = {};
+
+  for (const fileHandle of files) {
+    const file = await fileHandle.getFile();
+    const text = await file.text();
+
+    const lines = text.split("\n").slice(1); // skip header
+
+    lines.forEach(line => {
+      if (!line.trim()) return;
+
+      const [time, raw, alpha, beta, emg, emotion] = line.split(",");
+
+      const date = new Date().toLocaleDateString(); // temp
+
+      if (!dailyMap[date]) {
+        dailyMap[date] = { power: 0, emg: 0, count: 0 };
+      }
+
+      dailyMap[date].power += parseFloat(alpha) + parseFloat(beta);
+      dailyMap[date].emg += parseFloat(emg);
+      dailyMap[date].count += 1;
+    });
+  }
+
+  const processed = Object.keys(dailyMap).map(date => {
+    const d = dailyMap[date];
+    return {
+      date,
+      power: d.count ? d.power / d.count : 0,
+      emg: d.count ? d.emg / d.count : 0
+    };
+  });
+
+  updateEEGTrends(processed);
+}
+
+function setNoDataState() { //If no data for past 7 days
+  updateEEGTrends([
+    {date:"--", power:0, emotion:"--", fluct:"--"}
+  ]);
+}
+
+function updateEEGTrends(data) {
+  eegTrendChart.data.labels = data.map(d => d.date);
+  eegTrendChart.data.datasets[0].data = data.map(d => d.power);
+  eegTrendChart.update();
+
+  const tbody = document.querySelector("#eegTable tbody");
+  tbody.innerHTML = "";
+
+  data.forEach(d => {
+    const row = document.createElement("tr");
+
+    row.innerHTML = `
+      <td>${d.date}</td>
+      <td>${d.power.toFixed ? d.power.toFixed(1) : d.power}</td>
+      <td>${d.emotion || "--"}</td>
+      <td>${d.fluct || "--"}</td>
+    `;
+
+    tbody.appendChild(row);
+  });
+}
+
+const eegTrendChart = new Chart(document.getElementById("eegTrendChart"), {
+  type: "bar",
+  data: {
+    labels: dailyEEG.map(d => d.date),
+    datasets: [{
+      label: "Avg EEG Power",
+      data: dailyEEG.map(d => d.power),
+      borderWidth: 1
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: true }
+    },
+    scales: {
+      y: { beginAtZero: true }
+    }
+  }
+});
+
+
+function populateEEGTable() {
+  const tbody = document.querySelector("#eegTable tbody");
+  tbody.innerHTML = "";
+
+  dailyEEG.forEach(d => {
+    const row = document.createElement("tr");
+
+    row.innerHTML = `
+      <td>${d.date}</td>
+      <td>${d.power}</td>
+      <td>${d.emotion}</td>
+      <td>${d.fluct}</td>
+    `;
+
+    tbody.appendChild(row);
+  });
+}
+
+
 // ================= THEME =================
 function toggleTheme() {
   darkMode = !darkMode;
@@ -327,7 +462,7 @@ function toggleTheme() {
 function updateChartTheme() {
   const textColor = darkMode ? "#E8E3DC" : "#3E3A34";
   const gridColor = darkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)";
-  [eegChart, emgChart].forEach(chart => {
+  [eegChart, emgChart, eegTrendChart].forEach(chart => {
     chart.options.scales.x.ticks.color = textColor;
     chart.options.scales.y.ticks.color = textColor;
     chart.options.scales.x.grid.color = gridColor;
@@ -339,4 +474,5 @@ function updateChartTheme() {
 
 window.addEventListener("load", () => {
   showEEGRealtime();
+  populateEEGTable();
 });
