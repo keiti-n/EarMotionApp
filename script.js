@@ -17,9 +17,14 @@ async function toggleConnection() {
   const btn = document.getElementById("connectBtn");
 
   if (!connected) {
-    await connect();
-    connected = true;
-    btn.innerText = "Disconnect";
+    const success = await connect();
+    if (success) {
+      connected = true;
+      btn.innerText = "Disconnect";
+    } else {
+      connected = false;
+      btn.innerText = "Connect";
+    }
   } else {
     disconnect();
     connected = false;
