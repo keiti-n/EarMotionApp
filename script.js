@@ -63,9 +63,12 @@ function showEEGTrends() {
   document.getElementById("eegRealtime").style.display = "none";
   document.getElementById("eegTrends").style.display = "block";
 
-  const buttons = document.querySelectorAll(".toggle button");
-  buttons[1].classList.add("active");
-  buttons[0].classList.remove("active");
+  const eegButtons = document.querySelectorAll("#eegToggle button");
+  eegButtons[1].classList.add("active");
+  eegButtons[0].classList.remove("active");
+  const emgButtons = document.querySelectorAll("#emgToggle button");
+  emgButtons[1].classList.add("active");
+  emgButtons[0].classList.remove("active");
 
   if (demoMode) {
     dailyEEGData = demoEEGData;
