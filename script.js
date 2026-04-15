@@ -427,7 +427,7 @@ async function loadTrendData() {
       power: d.count ? d.power / d.count : 0,
       emg: d.count ? d.emg / d.count : 0,
       fluct: d.transitions,
-      duration: duration
+      duration: (duration / 60).toFixed(1) //convert to minutes
     };
   });
 
@@ -480,7 +480,8 @@ function updateEEGTrends(data) {
       <td>${d.date}</td>
       <td>${d.power.toFixed ? d.power.toFixed(1) : d.power}</td>
       <td>${d.emotion || "--"}</td>
-      <td>${d.fluct || "--"}</td>
+      <td>${d.fluct || 0}</td>
+      <td>${d.duration ? d.duration : "--"}</td>
     `;
 
     tbody.appendChild(row);
