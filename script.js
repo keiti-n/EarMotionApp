@@ -497,5 +497,4 @@ function updateChartTheme() {
 
 window.addEventListener("load", () => {
   showEEGRealtime();
-  populateEEGTable();
 });
