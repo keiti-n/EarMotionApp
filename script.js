@@ -321,7 +321,7 @@ function downloadCSV() {
   recordedData.forEach(r => {
     csv += `${r.time},${r.rawEEG},${r.alpha},${r.beta},${r.emg},${r.emotion}\n`;
   });
-
+  
   const blob = new Blob([csv], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
 
@@ -383,21 +383,51 @@ async function loadTrendData() {
       if (!date) return; // skip bad filenames
 
       if (!dailyMap[date]) {
-        dailyMap[date] = { power: 0, emg: 0, count: 0 };
+        dailyMap[date] = {
+          power: 0,
+          emg: 0,
+          count: 0,
+          lastEmotion: null,
+          transitions: 0,
+          startTime: null,
+          endTime: null
+        };
       }
 
       dailyMap[date].power += parseFloat(alpha) + parseFloat(beta);
       dailyMap[date].emg += parseFloat(emg);
       dailyMap[date].count += 1;
+      
+      const t = parseFloat(time);
+      if (dailyMap[date].startTime === null) {
+        dailyMap[date].startTime = t;
+      }
+      dailyMap[date].endTime = t;
+      
+      const currentEmotion = emotion?.trim();
+      if (dailyMap[date].lastEmotion !== null &&
+          currentEmotion !== dailyMap[date].lastEmotion) {
+        dailyMap[date].transitions += 1;
+      }
+      dailyMap[date].lastEmotion = currentEmotion;
+
     });
   }
 
+
   const processed = Object.keys(dailyMap).map(date => {
-    const d = dailyMap[date];
+    const d = dailyMap[date]; //date
+
+    const duration = (d.endTime !== null && d.startTime !== null)
+      ? (d.endTime - d.startTime)
+      : 0;
+
     return {
       date,
       power: d.count ? d.power / d.count : 0,
-      emg: d.count ? d.emg / d.count : 0
+      emg: d.count ? d.emg / d.count : 0,
+      fluct: d.transitions,
+      duration: duration
     };
   });
 
