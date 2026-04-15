@@ -193,13 +193,13 @@ function runDemo() {
 
 let dailyEEGData = [];
 const demoEEGData = [
-  {date:"4/18", power:42, emotion:"Calm", fluct:32},
-  {date:"4/19", power:35, emotion:"Stressed", fluct:38},
-  {date:"4/20", power:50, emotion:"Excited", fluct:29},
-  {date:"4/21", power:47, emotion:"Calm", fluct:31},
-  {date:"4/22", power:39, emotion:"Stressed", fluct:35},
-  {date:"4/23", power:44, emotion:"Excited", fluct:30},
-  {date:"4/24", power:48, emotion:"Calm", fluct:28},
+  {date:"4/18", power:42, emotion:"Calm", fluct:12, duration:7},
+  {date:"4/19", power:35, emotion:"Stressed", fluct:18, duration:20},
+  {date:"4/20", power:50, emotion:"Excited", fluct:9, duration:15},
+  {date:"4/21", power:47, emotion:"Calm", fluct:11, duration:27},
+  {date:"4/22", power:39, emotion:"Stressed", fluct:8, duration:19},
+  {date:"4/23", power:44, emotion:"Excited", fluct:5, duration:4},
+  {date:"4/24", power:48, emotion:"Calm", fluct:6, duration:8},
 ];
 
 // ================= REALTIME =================
@@ -459,7 +459,7 @@ function parseDateFromFilename(filename) {
 
 function setNoDataState() { //If no data for past 7 days
   dailyEEGData = [
-    {date:"--", power:0, emotion:"--", fluct:"--"}
+    {date:"--", power:0, emotion:"--", fluct:"--", duration:"--"}
   ];
 
   updateEEGTrends(dailyEEGData);
