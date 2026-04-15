@@ -325,7 +325,13 @@ function downloadCSV() {
 
   const a = document.createElement("a");
   a.href = url;
-  a.download = "EarMotion_data.csv";
+  
+  const now = new Date();
+  const mm = String(now.getMonth()+1).padStart(2,'0');
+  const dd = String(now.getDate()).padStart(2,'0');
+  const yyyy = now.getFullYear();
+  a.download = `EarData${mm}${dd}${yyyy}.csv`;
+  
   a.click();
 }
 
@@ -371,7 +377,8 @@ async function loadTrendData() {
 
       const [time, raw, alpha, beta, emg, emotion] = line.split(",");
 
-      const date = new Date().toLocaleDateString(); // temp
+      const date = parseDateFromFilename(fileHandle.name);
+      if (!date) return; // skip bad filenames
 
       if (!dailyMap[date]) {
         dailyMap[date] = { power: 0, emg: 0, count: 0 };
@@ -384,6 +391,7 @@ async function loadTrendData() {
   }
 
   const processed = Object.keys(dailyMap).map(date => {
+  const processed = Object.keys(dailyMap).map(date => {
     const d = dailyMap[date];
     return {
       date,
@@ -392,9 +400,31 @@ async function loadTrendData() {
     };
   });
 
-  dailyEEGData = processed;
+  processed.sort((a, b) => {   // sort by date (MM/DD)
+    const [am, ad] = a.date.split("/").map(Number);
+    const [bm, bd] = b.date.split("/").map(Number);
+
+    return new Date(2026, am-1, ad) - new Date(2026, bm-1, bd);
+  });
+    
+  const last7 = processed.slice(-7);  // last 7 days
+
+  dailyEEGData = last7;
   updateEEGTrends(dailyEEGData);
 }
+
+function parseDateFromFilename(filename) {
+  // Example: EarData04242026.csv
+  const match = filename.match(/EarData(\d{2})(\d{2})(\d{4})/);
+
+  if (!match) return null;
+
+  const mm = match[1];
+  const dd = match[2];
+
+  return `${mm}/${dd}`; // format like "04/24"
+}
+
 
 function setNoDataState() { //If no data for past 7 days
   dailyEEGData = [
