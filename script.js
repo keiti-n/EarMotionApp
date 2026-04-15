@@ -193,13 +193,13 @@ function runDemo() {
 
 let dailyEEGData = [];
 const demoEEGData = [
-  {date:"4/18", power:42, emotion:"Calm", fluct:12, duration:7},
-  {date:"4/19", power:35, emotion:"Stressed", fluct:18, duration:20},
-  {date:"4/20", power:50, emotion:"Excited", fluct:9, duration:15},
-  {date:"4/21", power:47, emotion:"Calm", fluct:11, duration:27},
-  {date:"4/22", power:39, emotion:"Stressed", fluct:8, duration:19},
-  {date:"4/23", power:44, emotion:"Excited", fluct:5, duration:4},
-  {date:"4/24", power:48, emotion:"Calm", fluct:6, duration:8},
+  {date:"4/18", power:42, emg:12, emotion:"Calm", fluct:12, duration:7},
+  {date:"4/19", power:35, emg:32, emotion:"Stressed", fluct:18, duration:20},
+  {date:"4/20", power:50, emg:21, emotion:"Excited", fluct:9, duration:15},
+  {date:"4/21", power:47, emg:14, emotion:"Calm", fluct:11, duration:27},
+  {date:"4/22", power:39, emg:36, emotion:"Stressed", fluct:8, duration:19},
+  {date:"4/23", power:44, emg:24, emotion:"Excited", fluct:5, duration:4},
+  {date:"4/24", power:48, emg:13, emotion:"Calm", fluct:6, duration:8},
 ];
 
 // ================= REALTIME =================
@@ -466,9 +466,15 @@ function setNoDataState() { //If no data for past 7 days
 }
 
 function updateEEGTrends(data) {
-  eegTrendChart.data.labels = data.map(d => d.date);
+  const labels = data.map(d => d.date);
+
+  eegTrendChart.data.labels = labels;
   eegTrendChart.data.datasets[0].data = data.map(d => d.power);
   eegTrendChart.update();
+
+  emgTrendChart.data.labels = labels; //also synchronizes emg
+  emgTrendChart.data.datasets[0].data = data.map(d => d.emg);
+  emgTrendChart.update();
 
   const tbody = document.querySelector("#eegTable tbody");
   tbody.innerHTML = "";
@@ -509,6 +515,28 @@ const eegTrendChart = new Chart(document.getElementById("eegTrendChart"), {
   }
 });
 
+const emgTrendChart = new Chart(document.getElementById("emgTrendChart"), {
+  type: "bar",
+  data: {
+    labels: [],
+    datasets: [{
+      label: "Avg EMG Activity",
+      data: [],
+      borderWidth: 1
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: true }
+    },
+    scales: {
+      y: { beginAtZero: true }
+    }
+  }
+});
+
+
 // ================= THEME =================
 function toggleTheme() {
   darkMode = !darkMode;
@@ -527,7 +555,7 @@ function toggleTheme() {
 function updateChartTheme() {
   const textColor = darkMode ? "#E8E3DC" : "#3E3A34";
   const gridColor = darkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)";
-  [eegChart, emgChart, eegTrendChart].forEach(chart => {
+  [eegChart, emgChart, eegTrendChart, emgTrendChart].forEach(chart => {
     chart.options.scales.x.ticks.color = textColor;
     chart.options.scales.y.ticks.color = textColor;
     chart.options.scales.x.grid.color = gridColor;
