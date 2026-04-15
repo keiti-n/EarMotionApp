@@ -66,6 +66,15 @@ function showEEGTrends() {
   const buttons = document.querySelectorAll(".toggle button");
   buttons[1].classList.add("active");
   buttons[0].classList.remove("active");
+
+  if (demoMode) {
+    dailyEEGData = demoEEGData;
+    updateEEGTrends(dailyEEGData);
+  } else if (dataFolderHandle) {
+    loadTrendData();
+  } else {
+    setNoDataState();
+  }
 }
 
 // ================= DATA =================
@@ -139,16 +148,6 @@ function toggleDemo() {
 function runDemo() {
   if (!demoMode) return;
 
-  const dailyEEG = [ //Daily Trends Table
-  {date:"4/18", power:42, emotion:"Calm", fluct:32},
-  {date:"4/19", power:35, emotion:"Stressed", fluct:38},
-  {date:"4/20", power:50, emotion:"Excited", fluct:29},
-  {date:"4/21", power:47, emotion:"Calm", fluct:31},
-  {date:"4/22", power:39, emotion:"Stressed", fluct:35},
-  {date:"4/23", power:44, emotion:"Excited", fluct:30},
-  {date:"4/24", power:48, emotion:"Calm", fluct:28},
-  ];
-
   const states = ["Calm","Excited","Stressed","Sad"];
 
   if (Math.random() < 0.02) {
@@ -189,6 +188,17 @@ function runDemo() {
 
   setTimeout(runDemo, 1000 / sampleRate);
 }
+
+let dailyEEGData = [];
+const demoEEGData = [
+  {date:"4/18", power:42, emotion:"Calm", fluct:32},
+  {date:"4/19", power:35, emotion:"Stressed", fluct:38},
+  {date:"4/20", power:50, emotion:"Excited", fluct:29},
+  {date:"4/21", power:47, emotion:"Calm", fluct:31},
+  {date:"4/22", power:39, emotion:"Stressed", fluct:35},
+  {date:"4/23", power:44, emotion:"Excited", fluct:30},
+  {date:"4/24", power:48, emotion:"Calm", fluct:28},
+];
 
 // ================= REALTIME =================
 function updateData(raw, alpha, beta, emg) {
@@ -382,13 +392,16 @@ async function loadTrendData() {
     };
   });
 
-  updateEEGTrends(processed);
+  dailyEEGData = processed;
+  updateEEGTrends(dailyEEGData);
 }
 
 function setNoDataState() { //If no data for past 7 days
-  updateEEGTrends([
+  dailyEEGData = [
     {date:"--", power:0, emotion:"--", fluct:"--"}
-  ]);
+  ];
+
+  updateEEGTrends(dailyEEGData);
 }
 
 function updateEEGTrends(data) {
@@ -416,10 +429,10 @@ function updateEEGTrends(data) {
 const eegTrendChart = new Chart(document.getElementById("eegTrendChart"), {
   type: "bar",
   data: {
-    labels: dailyEEG.map(d => d.date),
+    labels: [],
     datasets: [{
       label: "Avg EEG Power",
-      data: dailyEEG.map(d => d.power),
+      data: [],
       borderWidth: 1
     }]
   },
