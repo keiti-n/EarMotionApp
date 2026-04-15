@@ -38,13 +38,11 @@
     <button onclick="showEEGTrends()">Daily Trends</button>
   </div>
 
-  <!-- REALTIME VIEW -->
-  <div id="eegRealtime">
+  <div id="eegRealtime">  <!-- REALTIME VIEW -->
     <canvas id="eegChart"></canvas>
   </div>
 
-  <!-- TRENDS VIEW (hidden for now) -->
-  <div id="eegTrends" style="display:none;">
+  <div id="eegTrends" style="display:none;">   <!-- TRENDS VIEW -->
     <canvas id="eegTrendChart"></canvas>
 
     <table id="eegTable">
@@ -67,6 +65,33 @@
     <h2>EMG Activity</h2>
     <p id="emgEmotion">No Data</p>
     <canvas id="emgChart"></canvas>
+  </div>
+
+  <div class="toggle emg-toggle">
+    <button onclick="showEMGRealtime()">Realtime</button>
+    <button onclick="showEMGTrends()">Daily Trends</button>
+  </div>
+
+  <div id="emgRealtime">
+    <canvas id="emgChart"></canvas>
+  </div>
+
+  <div id="emgTrends" style="display:none;">
+    <canvas id="emgTrendChart"></canvas>
+
+    <h3>Daily EMG Summary</h3>
+    <table id="emgTable">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Avg EMG</th>
+          <th>Activity</th>
+          <th>Duration (min)</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    
   </div>
 
 </div>
