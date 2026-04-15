@@ -141,6 +141,8 @@ function toggleDemo() {
   if (demoMode) {
     connected = false;
     document.getElementById("status").innerText = "Demo Mode";
+    dailyEEGData = demoEEGData;
+    updateEEGTrends(dailyEEGData);
     runDemo();
   }
 }
@@ -391,7 +393,6 @@ async function loadTrendData() {
   }
 
   const processed = Object.keys(dailyMap).map(date => {
-  const processed = Object.keys(dailyMap).map(date => {
     const d = dailyMap[date];
     return {
       date,
@@ -476,26 +477,6 @@ const eegTrendChart = new Chart(document.getElementById("eegTrendChart"), {
     }
   }
 });
-
-
-function populateEEGTable() {
-  const tbody = document.querySelector("#eegTable tbody");
-  tbody.innerHTML = "";
-
-  dailyEEG.forEach(d => {
-    const row = document.createElement("tr");
-
-    row.innerHTML = `
-      <td>${d.date}</td>
-      <td>${d.power}</td>
-      <td>${d.emotion}</td>
-      <td>${d.fluct}</td>
-    `;
-
-    tbody.appendChild(row);
-  });
-}
-
 
 // ================= THEME =================
 function toggleTheme() {
