@@ -77,6 +77,32 @@ function showEEGTrends() {
   }
 }
 
+function showEMGRealtime() {
+  document.getElementById("emgRealtime").style.display = "block";
+  document.getElementById("emgTrends").style.display = "none";
+
+  const buttons = document.querySelectorAll(".emg-toggle button");
+  buttons[0].classList.add("active");
+  buttons[1].classList.remove("active");
+}
+
+function showEMGTrends() {
+  document.getElementById("emgRealtime").style.display = "none";
+  document.getElementById("emgTrends").style.display = "block";
+
+  const buttons = document.querySelectorAll(".emg-toggle button");
+  buttons[1].classList.add("active");
+  buttons[0].classList.remove("active");
+
+  if (demoMode) {   // reuse same data
+    updateEMGTrends(demoEEGData);
+  } else if (dataFolderHandle) {
+    loadTrendData();
+  } else {
+    setNoDataState();
+  }
+}
+
 // ================= DATA =================
 let eegData = [];
 let alphaData = [];
@@ -442,6 +468,7 @@ async function loadTrendData() {
 
   dailyEEGData = last7;
   updateEEGTrends(dailyEEGData);
+  updateEMGTrends(dailyEEGData);
 }
 
 function parseDateFromFilename(filename) {
@@ -463,6 +490,7 @@ function setNoDataState() { //If no data for past 7 days
   ];
 
   updateEEGTrends(dailyEEGData);
+  updateEMGTrends(dailyEEGData);
 }
 
 function updateEEGTrends(data) {
@@ -536,6 +564,11 @@ const emgTrendChart = new Chart(document.getElementById("emgTrendChart"), {
   }
 });
 
+function updateEMGTrends(data) {
+  emgTrendChart.data.labels = data.map(d => d.date);
+  emgTrendChart.data.datasets[0].data = data.map(d => d.emg);
+  emgTrendChart.update();
+}
 
 // ================= THEME =================
 function toggleTheme() {
@@ -567,4 +600,5 @@ function updateChartTheme() {
 
 window.addEventListener("load", () => {
   showEEGRealtime();
+  showEMGRealtime();
 });
