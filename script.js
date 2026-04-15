@@ -66,9 +66,6 @@ function showEEGTrends() {
   const eegButtons = document.querySelectorAll("#eegToggle button");
   eegButtons[1].classList.add("active");
   eegButtons[0].classList.remove("active");
-  const emgButtons = document.querySelectorAll("#emgToggle button");
-  emgButtons[1].classList.add("active");
-  emgButtons[0].classList.remove("active");
 
   if (demoMode) {
     dailyEEGData = demoEEGData;
@@ -80,25 +77,24 @@ function showEEGTrends() {
   }
 }
 
+function setEMGActive(index) {
+  const buttons = document.querySelectorAll("#emgToggle button");
+  buttons.forEach((b, i) => b.classList.toggle("active", i === index));
+}
+
 function showEMGRealtime() {
   document.getElementById("emgRealtime").style.display = "block";
   document.getElementById("emgTrends").style.display = "none";
-
-  const buttons = document.querySelectorAll(".emg-toggle button");
-  buttons[0].classList.add("active");
-  buttons[1].classList.remove("active");
+  setEMGActive(0);
 }
 
 function showEMGTrends() {
   document.getElementById("emgRealtime").style.display = "none";
   document.getElementById("emgTrends").style.display = "block";
+  setEMGActive(1);
 
-  const buttons = document.querySelectorAll(".emg-toggle button");
-  buttons[1].classList.add("active");
-  buttons[0].classList.remove("active");
-
-  if (demoMode) {   // reuse same data
-    updateEMGTrends(demoEEGData);
+  if (demoMode) {
+    updateEMGTrends(demoEMGData);
   } else if (dataFolderHandle) {
     loadTrendData();
   } else {
@@ -498,16 +494,14 @@ function parseDateFromFilename(filename) {
 }
 
 
-function setNoDataState() { //If no data for past 7 days
-  dailyEEGData = [
+function setNoDataState() {
+  updateEEGTrends([
     {date:"--", eeg:0, emotion:"--", fluct:"--", duration:"--"}
-  ];
-    dailyEMGData = [
+  ]);
+  
+  updateEMGTrends([
     {date:"--", emg:0, emotion:"--", fluct:"--", duration:"--"}
-  ];
-
-  updateEEGTrends(dailyEEGData);
-  updateEMGTrends(dailyEMGData);
+  ]);
 }
 
 function updateEEGTrends(data) {
@@ -525,7 +519,7 @@ function updateEEGTrends(data) {
 
     row.innerHTML = `
       <td>${d.date}</td>
-      <td>${d.eeg.toFixed ? d.eeg.toFixed(1) : d.eeg}</td>
+      <td>${typeof d.eeg === "number" ? d.eeg.toFixed(1) : "--"}</td>
       <td>${d.emotion || "--"}</td>
       <td>${d.fluct || 0}</td>
       <td>${d.duration ? d.duration : "--"}</td>
@@ -585,7 +579,7 @@ function updateEMGTrends(data) {
   emgTrendChart.data.datasets[0].data = data.map(d => d.emg);
   emgTrendChart.update();
 
-  const tbody = document.querySelector("#eegTable tbody");
+  const tbody = document.querySelector("#emgTable tbody");
   tbody.innerHTML = "";
 
   data.forEach(d => {
@@ -593,7 +587,7 @@ function updateEMGTrends(data) {
 
     row.innerHTML = `
       <td>${d.date}</td>
-      <td>${d.emg.toFixed ? d.emg.toFixed(1) : d.emg}</td>
+      <td>${typeof d.emg === "number" ? d.emg.toFixed(1) : "--"}</td>
       <td>${d.emotion || "--"}</td>
       <td>${d.fluct || 0}</td>
       <td>${d.duration ? d.duration : "--"}</td>
