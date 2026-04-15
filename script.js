@@ -139,6 +139,16 @@ function toggleDemo() {
 function runDemo() {
   if (!demoMode) return;
 
+  const dailyEEG = [ //Daily Trends Table
+  {date:"4/18", power:42, emotion:"Calm", fluct:32},
+  {date:"4/19", power:35, emotion:"Stressed", fluct:38},
+  {date:"4/20", power:50, emotion:"Excited", fluct:29},
+  {date:"4/21", power:47, emotion:"Calm", fluct:31},
+  {date:"4/22", power:39, emotion:"Stressed", fluct:35},
+  {date:"4/23", power:44, emotion:"Excited", fluct:30},
+  {date:"4/24", power:48, emotion:"Calm", fluct:28},
+  ];
+
   const states = ["Calm","Excited","Stressed","Sad"];
 
   if (Math.random() < 0.02) {
