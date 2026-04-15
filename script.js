@@ -222,13 +222,24 @@ function runDemo() {
 
 let dailyEEGData = [];
 const demoEEGData = [
-  {date:"4/18", power:42, emg:12, emotion:"Calm", fluct:12, duration:7},
-  {date:"4/19", power:35, emg:32, emotion:"Stressed", fluct:18, duration:20},
-  {date:"4/20", power:50, emg:21, emotion:"Excited", fluct:9, duration:15},
-  {date:"4/21", power:47, emg:14, emotion:"Calm", fluct:11, duration:27},
-  {date:"4/22", power:39, emg:36, emotion:"Stressed", fluct:8, duration:19},
-  {date:"4/23", power:44, emg:24, emotion:"Excited", fluct:5, duration:4},
-  {date:"4/24", power:48, emg:13, emotion:"Calm", fluct:6, duration:8},
+  {date:"4/18", eeg:42, emotion:"Calm", fluct:12, duration:7},
+  {date:"4/19", eeg:35, emotion:"Stressed", fluct:18, duration:20},
+  {date:"4/20", eeg:50, emotion:"Excited", fluct:9, duration:15},
+  {date:"4/21", eeg:47, emotion:"Calm", fluct:11, duration:27},
+  {date:"4/22", eeg:39, emotion:"Stressed", fluct:8, duration:19},
+  {date:"4/23", eeg:44, emotion:"Excited", fluct:5, duration:4},
+  {date:"4/24", eeg:48, emotion:"Calm", fluct:6, duration:8},
+];
+
+let dailyEMGData = [];
+const demoEMGData = [
+  {date:"4/18", emg:12, emotion:"Calm", fluct:12, duration:7},
+  {date:"4/19", emg:32, emotion:"Stressed", fluct:18, duration:20},
+  {date:"4/20", emg:21, emotion:"Excited", fluct:9, duration:15},
+  {date:"4/21", emg:14, emotion:"Calm", fluct:11, duration:27},
+  {date:"4/22", emg:36, emotion:"Stressed", fluct:8, duration:19},
+  {date:"4/23", emg:24, emotion:"Excited", fluct:5, duration:4},
+  {date:"4/24", emg:13, emotion:"Calm", fluct:6, duration:8},
 ];
 
 // ================= REALTIME =================
@@ -413,7 +424,7 @@ async function loadTrendData() {
 
       if (!dailyMap[date]) {
         dailyMap[date] = {
-          power: 0,
+          eeg: 0,
           emg: 0,
           count: 0,
           lastEmotion: null,
@@ -423,7 +434,7 @@ async function loadTrendData() {
         };
       }
 
-      dailyMap[date].power += parseFloat(alpha) + parseFloat(beta);
+      dailyMap[date].eeg += parseFloat(alpha) + parseFloat(beta);
       dailyMap[date].emg += parseFloat(emg);
       dailyMap[date].count += 1;
       
@@ -453,7 +464,7 @@ async function loadTrendData() {
 
     return {
       date,
-      power: d.count ? d.power / d.count : 0,
+      eeg: d.count ? d.eeg / d.count : 0,
       emg: d.count ? d.emg / d.count : 0,
       fluct: d.transitions,
       duration: (duration / 60).toFixed(1) //convert to minutes
@@ -489,23 +500,22 @@ function parseDateFromFilename(filename) {
 
 function setNoDataState() { //If no data for past 7 days
   dailyEEGData = [
-    {date:"--", power:0, emotion:"--", fluct:"--", duration:"--"}
+    {date:"--", eeg:0, emotion:"--", fluct:"--", duration:"--"}
+  ];
+    dailyEMGData = [
+    {date:"--", emg:0, emotion:"--", fluct:"--", duration:"--"}
   ];
 
   updateEEGTrends(dailyEEGData);
-  updateEMGTrends(dailyEEGData);
+  updateEMGTrends(dailyEMGData);
 }
 
 function updateEEGTrends(data) {
   const labels = data.map(d => d.date);
 
   eegTrendChart.data.labels = labels;
-  eegTrendChart.data.datasets[0].data = data.map(d => d.power);
+  eegTrendChart.data.datasets[0].data = data.map(d => d.eeg);
   eegTrendChart.update();
-
-  emgTrendChart.data.labels = labels; //also synchronizes emg
-  emgTrendChart.data.datasets[0].data = data.map(d => d.emg);
-  emgTrendChart.update();
 
   const tbody = document.querySelector("#eegTable tbody");
   tbody.innerHTML = "";
@@ -515,7 +525,7 @@ function updateEEGTrends(data) {
 
     row.innerHTML = `
       <td>${d.date}</td>
-      <td>${d.power.toFixed ? d.power.toFixed(1) : d.power}</td>
+      <td>${d.eeg.toFixed ? d.eeg.toFixed(1) : d.eeg}</td>
       <td>${d.emotion || "--"}</td>
       <td>${d.fluct || 0}</td>
       <td>${d.duration ? d.duration : "--"}</td>
@@ -567,11 +577,33 @@ const emgTrendChart = new Chart(document.getElementById("emgTrendChart"), {
   }
 });
 
+
 function updateEMGTrends(data) {
-  emgTrendChart.data.labels = data.map(d => d.date);
+  const labels = data.map(d => d.date);
+
+  emgTrendChart.data.labels = labels;
   emgTrendChart.data.datasets[0].data = data.map(d => d.emg);
   emgTrendChart.update();
+
+  const tbody = document.querySelector("#eegTable tbody");
+  tbody.innerHTML = "";
+
+  data.forEach(d => {
+    const row = document.createElement("tr");
+
+    row.innerHTML = `
+      <td>${d.date}</td>
+      <td>${d.emg.toFixed ? d.emg.toFixed(1) : d.emg}</td>
+      <td>${d.emotion || "--"}</td>
+      <td>${d.fluct || 0}</td>
+      <td>${d.duration ? d.duration : "--"}</td>
+    `;
+
+    tbody.appendChild(row);
+  });
 }
+
+
 
 // ================= THEME =================
 function toggleTheme() {
