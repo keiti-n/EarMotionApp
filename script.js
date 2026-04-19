@@ -1,4 +1,4 @@
-const DEVICE_NAME = "XIAO-C3-BLE";
+const DEVICE_NAME = "EEG_EMG_Monitor";
 const SERVICE_UUID = "12345678-1234-5678-1234-56789abcdef0";
 const CHARACTERISTIC_UUID = "12345678-1234-5678-1234-56789abcdef1";
 
@@ -12,7 +12,6 @@ let windowSeconds = 10;
 let maxPoints = sampleRate * windowSeconds;
 
 let bleDevice = null;
-//bleDevice = device;
 
 // ================= CHANGING BUTTONS =================
 async function toggleConnection() {
@@ -309,11 +308,12 @@ async function connect() {
       alert("Bluetooth not supported in this browser");
       return;
     }
-
     const device = await navigator.bluetooth.requestDevice({
-      acceptAllDevices: true,
+      filters: [{ name: DEVICE_NAME }],
       optionalServices: [SERVICE_UUID]
     });
+    
+    bleDevice = device;
 
     if (!device) return false;
     //alert("Device selected: " + device.name);
