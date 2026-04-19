@@ -12,7 +12,7 @@ let windowSeconds = 10;
 let maxPoints = sampleRate * windowSeconds;
 
 let bleDevice = null;
-bleDevice = device;
+//bleDevice = device;
 
 // ================= CHANGING BUTTONS =================
 async function toggleConnection() {
@@ -380,20 +380,24 @@ function downloadCSV() {
 
 // ================= BLE & Data Processing =================
 function parseBLE(value) {
-  const decoded = new TextDecoder().decode(value);
-  const parts = decoded.trim().split(",");
+  const decoded = new TextDecoder().decode(value).trim();
+  console.log("RAW STRING:", decoded);
+  const parts = decoded.split(",");
 
   if (parts.length < 3) return null;
+  const nums = parts.map(Number);
+  if (nums.some(isNaN)) return null;
 
   return {
-    time: parseFloat(parts[0]) / 1000, // convert ms → seconds
-    rawEEG: parseFloat(parts[1]),
-    rawEMG: parseFloat(parts[2])
+    time: nums[0] / 1000,
+    rawEEG: nums[1],
+    rawEMG: nums[2]
   };
 }
 
 function handleBLE(event) {
   const parsed = parseBLE(event.target.value);
+  console.log("BLE EVENT");
   if (!parsed) return;
   processSignal(parsed);
 }
@@ -403,7 +407,7 @@ function processSignal({ time, rawEEG, rawEMG }) {
   const smoothEEG = smoothSignal(filteredEEG);
   const { alpha, beta } = extractBands(smoothEEG);
 
-  const smoothEMG = smoothSignal(rawEMG);
+  const smoothEMG = smoothSignal(rawEMG, emgBuffer);
 
   updateData(filteredEEG, alpha, beta, smoothEMG);
 }
