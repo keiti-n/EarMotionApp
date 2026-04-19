@@ -11,6 +11,8 @@ let sampleRate = 10;
 let windowSeconds = 10;
 let maxPoints = sampleRate * windowSeconds;
 
+let bleDevice = null;
+bleDevice = device;
 
 // ================= CHANGING BUTTONS =================
 async function toggleConnection() {
@@ -310,15 +312,15 @@ async function connect() {
 
     const device = await navigator.bluetooth.requestDevice({
       acceptAllDevices: true,
-      optionalServices: ["12345678-1234-1234-1234-123456789abc"]
+      optionalServices: [SERVICE_UUID]
     });
 
     if (!device) return false;
     //alert("Device selected: " + device.name);
-  
+    
     const server = await device.gatt.connect();
-    const service = await server.getPrimaryService("12345678-1234-1234-1234-123456789abc");
-    const characteristic = await service.getCharacteristic("abcd1234-5678-1234-5678-abcdef123456");
+    const service = await server.getPrimaryService(SERVICE_UUID);
+    const characteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
     await characteristic.startNotifications();
     characteristic.addEventListener("characteristicvaluechanged", handleBLE);
     document.getElementById("status").innerText = "Connected";
@@ -333,6 +335,9 @@ async function connect() {
 }
 
 function disconnect() {
+  if (bleDevice && bleDevice.gatt.connected) {
+    bleDevice.gatt.disconnect();
+  }
   connected = false;
   demoMode = false;
   document.getElementById("status").innerText = "Disconnected";
@@ -372,6 +377,63 @@ function downloadCSV() {
   
   a.click();
 }
+
+// ================= BLE & Data Processing =================
+function parseBLE(value) {
+  const decoded = new TextDecoder().decode(value);
+  const parts = decoded.trim().split(",");
+
+  if (parts.length < 3) return null;
+
+  return {
+    time: parseFloat(parts[0]) / 1000, // convert ms → seconds
+    rawEEG: parseFloat(parts[1]),
+    rawEMG: parseFloat(parts[2])
+  };
+}
+
+function handleBLE(event) {
+  const parsed = parseBLE(event.target.value);
+  if (!parsed) return;
+  processSignal(parsed);
+}
+
+function processSignal({ time, rawEEG, rawEMG }) {
+  const filteredEEG = bandpassFilter(rawEEG);
+  const smoothEEG = smoothSignal(filteredEEG);
+  const { alpha, beta } = extractBands(smoothEEG);
+
+  const smoothEMG = smoothSignal(rawEMG);
+
+  updateData(filteredEEG, alpha, beta, smoothEMG);
+}
+
+let eegBuffer = []; //Buffer for bandpass
+let emgBuffer = [];
+const BUFFER_SIZE = 64; // ~1–2 seconds depending on sample rate
+
+
+let prevEEG = 0;
+function bandpassFilter(x) {
+  const alpha = 0.1; // tuning parameter
+  const filtered = alpha * x + (1 - alpha) * prevEEG;
+  prevEEG = filtered;
+  return filtered;
+}
+
+function smoothSignal(value, buffer = eegBuffer) {
+  buffer.push(value);
+  if (buffer.length > BUFFER_SIZE) buffer.shift();
+  const avg = buffer.reduce((a, b) => a + b, 0) / buffer.length;
+  return avg;
+}
+
+function extractBands(signal) { //temp simplification w/o FFT
+  const alpha = signal * 0.6;  // low-frequency component
+  const beta  = signal * 0.4;  // higher-frequency proxy
+  return { alpha, beta };
+}
+
 
 // ================= Daily Trends =================
 let dataFolderHandle = null;  //Select folder for browser to read data from
