@@ -308,8 +308,13 @@ async function connect() {
       alert("Bluetooth not supported in this browser");
       return;
     }
+    //const device = await navigator.bluetooth.requestDevice({
+      //filters: [{ name: DEVICE_NAME }],
+      //optionalServices: [SERVICE_UUID]
+   // });
+
     const device = await navigator.bluetooth.requestDevice({
-      filters: [{ name: DEVICE_NAME }],
+      acceptAllDevices: true,
       optionalServices: [SERVICE_UUID]
     });
     
