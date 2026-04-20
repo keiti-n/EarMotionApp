@@ -288,7 +288,7 @@ let baselineEMG = 0; //Setting baseline...
 let baselineSamples = [];
 
 function calibrateEMG(emg) {
-  if (baselineSamples.length < 100) {
+  if (baselineSamples.length < 500) {
     baselineSamples.push(emg);
     baselineEMG = baselineSamples.reduce((a,b)=>a+b,0) / baselineSamples.length;
   }
