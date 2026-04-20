@@ -1,4 +1,4 @@
-const DEVICE_NAME = "EEG_EMG_Monitor";
+const DEVICE_NAME = "EarMotion";
 const SERVICE_UUID = "12345678-1234-5678-1234-56789abcdef0";
 const CHARACTERISTIC_UUID = "12345678-1234-5678-1234-56789abcdef1";
 
@@ -283,21 +283,42 @@ function updateData(raw, alpha, beta, emg) {
 }
 
 // ================= EMOTION LOGIC =================
+// Set this after measuring ~2–3 seconds of rest EMG
+let baselineEMG = 400; // <-- update this dynamically if possible
+
 function updateEmotion(alpha, beta, emg) {
 
-  let state = currentEmotion;
+  // --- Normalize EEG ---
+  const total = alpha + beta || 1;
+  const alphaRatio = alpha / total;
+  const betaRatio  = beta  / total;
 
-  if (beta > alpha * 1.5) state = "Stressed";
-  else if (beta > alpha * 1.1) state = "Excited";
-  else if (alpha > beta) state = "Calm";
-  else state = "Sad";
+  // --- Normalize EMG ---
+  const emgNorm = emg / baselineEMG;
 
+  // --- Determine valence (EEG) ---
+  let valence;
+  if (alphaRatio > betaRatio) valence = "positive";
+  else valence = "negative";
+
+  // --- Determine arousal (EMG) ---
+  let arousal;
+  if (emgNorm < 1.2) arousal = "low";
+  else if (emgNorm < 1.8) arousal = "medium";
+  else arousal = "high";
+
+  // --- Combine into emotion ---
+  let state;
+  if (valence === "positive" && arousal === "low") state = "Calm";
+  else if (valence === "positive" && arousal !== "low") state = "Excited";
+  else if (valence === "negative" && arousal === "low") state = "Sad";
+  else state = "Stressed";
+
+  // --- Update UI ---
   document.getElementById("status").innerText = "State: " + state;
-  document.getElementById("eegEmotion").innerText = "EEG: " + currentEmotion;
+  document.getElementById("eegEmotion").innerText = "EEG: " + valence;
   document.getElementById("emgEmotion").innerText =
-    "EMG: " + (state === "Stressed" ? "Active"
-      : state === "Excited" ? "Active"
-      : "Relaxed");
+    "EMG: " + (arousal === "low" ? "Relaxed" : "Active");
 }
 
 // ================= CONNECT =================
