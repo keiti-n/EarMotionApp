@@ -168,11 +168,21 @@ function toggleDemo() {
   if (demoMode) {
     connected = false;
     document.getElementById("status").innerText = "Demo Mode";
+
     dailyEEGData = demoEEGData;
     updateEEGTrends(dailyEEGData);
+
+    // 🔥 RESET DEMO STATE
+    demoHold = 0;
+    currentEmotion = "Calm";
+    targetEmotion = "Calm";
+
     runDemo();
   }
 }
+
+let demoHold = 0;
+let targetEmotion = "Calm";
 
 function runDemo() {
   if (!demoMode) return;
@@ -499,12 +509,12 @@ function computeFFTbands(signal) {
   for (let k = 0; k < N; k++) {
     for (let t = 0; t < N; t++) {
       const angle = (2 * Math.PI * k * t) / N;
-      re[k] += signal[t] * Math.cos(angle);
-      im[k] -= signal[t] * Math.sin(angle);
+      re[k] += (signal[t] * Math.cos(angle)) / N;
+      im[k] -= (signal[t] * Math.sin(angle)) / N;
     }
   }
 
-  const mags = re.map((r, i) => Math.sqrt(r*r + im[i]*im[i]));
+  const mags = re.map((r, i) => Math.sqrt(r*r + im[i]*im[i])) / N;
   // frequency bins
   const sampleRate = 10; // your current system rate
   const binHz = sampleRate / N;
