@@ -8,7 +8,7 @@ let connected = false;
 let demoMode = false;
 let darkMode = false;
 
-let sampleRate = 10;
+let sampleRate = 128;
 let windowSeconds = 10;
 let maxPoints = sampleRate * windowSeconds;
 
@@ -516,7 +516,7 @@ function computeFFTbands(signal) {
 
   const mags = re.map((r, i) => Math.sqrt(r*r + im[i]*im[i])) / N;
   // frequency bins
-  const sampleRate = 10; // your current system rate
+  const sampleRate = 128; // your current system rate
   const binHz = sampleRate / N;
 
   let alpha = 0;
