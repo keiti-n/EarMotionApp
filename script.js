@@ -179,42 +179,45 @@ function runDemo() {
 
   const states = ["Calm","Excited","Stressed","Sad"];
 
-  if (Math.random() < 0.02) {
-    currentEmotion = states[Math.floor(Math.random() * states.length)];
+  // --- only change emotion every ~3–5 seconds ---
+  if (demoHold <= 0) {
+    targetEmotion = states[Math.floor(Math.random() * states.length)];
+    demoHold = 3 + Math.random() * 2; // seconds
+  } else {
+    demoHold -= 1 / sampleRate;
   }
+
+  currentEmotion = targetEmotion;
 
   let alpha, beta, emg;
 
+  const noise = () => (Math.random() - 0.5) * 2;
+
   switch(currentEmotion) {
     case "Calm":
-      alpha = 45 + randn()*6;
-      beta  = 15 + randn()*4;
-      emg   = 10 + Math.abs(randn()*5);
+      alpha = 45 + noise()*2;
+      beta  = 15 + noise()*2;
+      emg   = 12 + noise()*1;
       break;
-
     case "Excited":
-      alpha = 35 + randn()*6;
-      beta  = 35 + randn()*8;
-      emg   = 25 + Math.abs(randn()*8);
+      alpha = 35 + noise()*2;
+      beta  = 45 + noise()*2;
+      emg   = 35 + noise()*2;
       break;
-
     case "Stressed":
-      alpha = 15 + randn()*5;
-      beta  = 60 + randn()*10;
-      emg   = 55 + Math.abs(randn()*12);
+      alpha = 20 + noise()*2;
+      beta  = 65 + noise()*3;
+      emg   = 60 + noise()*3;
       break;
-
     case "Sad":
-      alpha = 25 + randn()*5;
-      beta  = 25 + randn()*5;
-      emg   = 20 + Math.abs(randn()*6);
+      alpha = 30 + noise()*2;
+      beta  = 30 + noise()*2;
+      emg   = 20 + noise()*1;
       break;
   }
 
-  const raw = alpha + beta + randn()*10;
-
+  const raw = alpha + beta;
   updateData(raw, alpha, beta, emg);
-
   setTimeout(runDemo, 1000 / sampleRate);
 }
 
@@ -308,8 +311,7 @@ function updateEmotion(alpha, beta, emg) {
   else valence = "negative";
   // --- Determine arousal (EMG) ---
   let arousal;
-  if (emgNorm < 1.2) arousal = "low";
-  else if (emgNorm < 1.8) arousal = "medium";
+  if (emgNorm < 1.5) arousal = "low";
   else arousal = "high";
 
   // --- Combine into emotion ---
@@ -448,11 +450,22 @@ function handleBLE(event) {
   processSignal(parsed);
 }
 
+let fftBuffer = [];
+const FFT_SIZE = 64; // power of 2
+
+
 function processSignal({ time, rawEEG, rawEMG }) {
   const filteredEEG = bandpassFilter(rawEEG);
-  const smoothEEG = smoothSignal(filteredEEG);
-  const { alpha, beta } = extractBands(smoothEEG);
 
+  fftBuffer.push(filteredEEG);
+  if (fftBuffer.length > FFT_SIZE) fftBuffer.shift();
+  let alpha = 0;
+  let beta = 0;
+  if (fftBuffer.length === FFT_SIZE) {
+    ({ alpha, beta } = computeFFTbands(fftBuffer));
+  }
+  
+  const smoothEEG = smoothSignal(filteredEEG);
   const smoothEMG = smoothSignal(rawEMG, emgBuffer);
 
   updateData(filteredEEG, alpha, beta, smoothEMG);
@@ -478,9 +491,32 @@ function smoothSignal(value, buffer = eegBuffer) {
   return avg;
 }
 
-function extractBands(signal) { //temp simplification w/o FFT
-  const alpha = signal * 0.6;  // low-frequency component
-  const beta  = signal * 0.4;  // higher-frequency proxy
+function computeFFTbands(signal) {
+  const N = signal.length;
+  let re = new Array(N).fill(0); // real-only FFT (simplified DFT for small N)
+  let im = new Array(N).fill(0);
+
+  for (let k = 0; k < N; k++) {
+    for (let t = 0; t < N; t++) {
+      const angle = (2 * Math.PI * k * t) / N;
+      re[k] += signal[t] * Math.cos(angle);
+      im[k] -= signal[t] * Math.sin(angle);
+    }
+  }
+
+  const mags = re.map((r, i) => Math.sqrt(r*r + im[i]*im[i]));
+  // frequency bins
+  const sampleRate = 10; // your current system rate
+  const binHz = sampleRate / N;
+
+  let alpha = 0;
+  let beta = 0;
+
+  for (let i = 0; i < mags.length; i++) {
+    const freq = i * binHz;
+    if (freq >= 8 && freq <= 12) alpha += mags[i];
+    if (freq >= 13 && freq <= 30) beta += mags[i];
+  }
   return { alpha, beta };
 }
 
