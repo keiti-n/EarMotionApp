@@ -1,4 +1,5 @@
 const DEVICE_NAME = "EarMotion";
+const DEVICE_KEY = "earmotion_device";
 const SERVICE_UUID = "12345678-1234-5678-1234-56789abcdef0";
 const CHARACTERISTIC_UUID = "12345678-1234-5678-1234-56789abcdef1";
 
@@ -283,24 +284,28 @@ function updateData(raw, alpha, beta, emg) {
 }
 
 // ================= EMOTION LOGIC =================
-// Set this after measuring ~2–3 seconds of rest EMG
-let baselineEMG = 400; // <-- update this dynamically if possible
+let baselineEMG = 0; //Setting baseline...
+let baselineSamples = [];
+
+function calibrateEMG(emg) {
+  if (baselineSamples.length < 100) {
+    baselineSamples.push(emg);
+    baselineEMG = baselineSamples.reduce((a,b)=>a+b,0) / baselineSamples.length;
+  }
+}
 
 function updateEmotion(alpha, beta, emg) {
-
   // --- Normalize EEG ---
   const total = alpha + beta || 1;
   const alphaRatio = alpha / total;
   const betaRatio  = beta  / total;
-
   // --- Normalize EMG ---
   const emgNorm = emg / baselineEMG;
-
+  
   // --- Determine valence (EEG) ---
   let valence;
   if (alphaRatio > betaRatio) valence = "positive";
   else valence = "negative";
-
   // --- Determine arousal (EMG) ---
   let arousal;
   if (emgNorm < 1.2) arousal = "low";
@@ -327,34 +332,49 @@ async function connect() {
 
     if (!navigator.bluetooth) {
       alert("Bluetooth not supported in this browser");
-      return;
+      return false;
     }
-    //const device = await navigator.bluetooth.requestDevice({
-      //filters: [{ name: DEVICE_NAME }],
-      //optionalServices: [SERVICE_UUID]
-   // });
 
-    const device = await navigator.bluetooth.requestDevice({
-      acceptAllDevices: true,
-      optionalServices: [SERVICE_UUID]
-    });
-    
-    bleDevice = device;
+    let device;
+
+    // --- Try to reuse saved device ---
+    const savedId = localStorage.getItem(DEVICE_KEY);
+
+    if (savedId && navigator.bluetooth.getDevices) {
+      const devices = await navigator.bluetooth.getDevices();
+      device = devices.find(d => d.id === savedId);
+    }
+
+    // --- If no saved device, request once ---
+    if (!device) {
+      device = await navigator.bluetooth.requestDevice({
+        filters: [
+          { name: DEVICE_NAME }
+        ],
+        optionalServices: [SERVICE_UUID]
+      });
+
+      if (device) {
+        localStorage.setItem(DEVICE_KEY, device.id);
+      }
+    }
 
     if (!device) return false;
-    //alert("Device selected: " + device.name);
-    
+
+    bleDevice = device;
+
     const server = await device.gatt.connect();
     const service = await server.getPrimaryService(SERVICE_UUID);
     const characteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
+
     await characteristic.startNotifications();
     characteristic.addEventListener("characteristicvaluechanged", handleBLE);
+
     document.getElementById("status").innerText = "Connected";
     return true;
 
   } catch (err) {
-    console.log("Connection cancelled or failed:", err.message);
-    //alert("ERROR: " + err.message);
+    console.log("Connection failed:", err);
     document.getElementById("status").innerText = "Not Connected";
     return false;
   }
@@ -719,7 +739,12 @@ function updateChartTheme() {
   });
 }
 
-window.addEventListener("load", () => {
+window.addEventListener("load", async () => {
   showEEGRealtime();
   showEMGRealtime();
+
+  const saved = localStorage.getItem(DEVICE_KEY);
+  if (saved) {
+    console.log("Saved device found:", saved);
+  }
 });
