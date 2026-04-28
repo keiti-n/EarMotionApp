@@ -168,7 +168,8 @@ function toggleDemo() {
   if (demoMode) {
     connected = false;
     document.getElementById("status").innerText = "Demo Mode";
-
+    
+    baselineEMG = 20;
     dailyEEGData = demoEEGData;
     updateEEGTrends(dailyEEGData);
 
@@ -326,7 +327,8 @@ function updateEmotion(alpha, beta, emg) {
   const alphaRatio = alpha / total;
   const betaRatio  = beta  / total;
   // --- Normalize EMG ---
-  const emgNorm = emg / baselineEMG;
+  const safeBaseline = baselineEMG || emg || 1;
+  const emgNorm = emg / safeBaseline;
   
   // --- Determine valence (EEG) ---
   let valence;
