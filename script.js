@@ -220,10 +220,23 @@ function runDemo() {
       emg   = 60 + noise()*3;
       break;
     case "Sad":
-      alpha = 30 + noise()*2;
-      beta  = 30 + noise()*2;
+      alpha = 32 + noise()*2;
+      beta  = 28 + noise()*2;
       emg   = 20 + noise()*1;
       break;
+  }
+
+  // --- prevent alpha and beta from being equal or too close ---
+  const MIN_DIFF = 3;
+
+  if (Math.abs(alpha - beta) < MIN_DIFF) {
+    const offset = MIN_DIFF + Math.random() * 5;
+
+    if (alpha >= beta) {
+      beta = alpha - offset;
+    } else {
+      beta = alpha + offset;
+    }
   }
 
   const raw = alpha + beta;
