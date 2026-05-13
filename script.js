@@ -476,24 +476,25 @@ function handleBLE(event) {
 }
 
 let fftBuffer = [];
-const FFT_SIZE = 64; // power of 2
+const FFT_SIZE = 256; // power of 2, 64 prev, increase resolution to 0.5 Hz
 
 
 function processSignal({ time, rawEEG, rawEMG }) {
-  const filteredEEG = bandpassFilter(rawEEG);
-
-  fftBuffer.push(filteredEEG);
-  if (fftBuffer.length > FFT_SIZE) fftBuffer.shift();
+  // Remove DC drift
+  const eeg = rawEEG - eegMean(rawEEG);
+  fftBuffer.push(eeg);
+  if (fftBuffer.length > FFT_SIZE)
+    fftBuffer.shift();
   let alpha = 0;
   let beta = 0;
   if (fftBuffer.length === FFT_SIZE) {
     ({ alpha, beta } = computeFFTbands(fftBuffer));
+    // smooth powers only
+    alpha = smoothBand(alpha, alphaHistory);
+    beta  = smoothBand(beta, betaHistory);
   }
-  
-  const smoothEEG = smoothSignal(filteredEEG);
   const smoothEMG = smoothSignal(rawEMG, emgBuffer);
-
-  updateData(filteredEEG, alpha, beta, smoothEMG);
+  updateData(eeg, alpha, beta, smoothEMG);
 }
 
 let eegBuffer = []; //Buffer for bandpass
@@ -518,18 +519,38 @@ function smoothSignal(value, buffer = eegBuffer) {
 
 function computeFFTbands(signal) {
   const N = signal.length;
-  let re = new Array(N).fill(0); // real-only FFT (simplified DFT for small N)
+  const Fs = sampleRate;
+  let re = new Array(N).fill(0);
   let im = new Array(N).fill(0);
-
+  // Hamming window
+  let windowed = signal.map((x, n) =>
+    x * (0.54 - 0.46 *
+    Math.cos((2 * Math.PI * n)/(N - 1)))
+  );
   for (let k = 0; k < N; k++) {
     for (let t = 0; t < N; t++) {
       const angle = (2 * Math.PI * k * t) / N;
-      re[k] += (signal[t] * Math.cos(angle)) / N;
-      im[k] -= (signal[t] * Math.sin(angle)) / N;
+      re[k] += windowed[t] * Math.cos(angle);
+      im[k] -= windowed[t] * Math.sin(angle);
     }
   }
+  const powers = re.map((r, i) =>
+    (r*r + im[i]*im[i]) / N
+  );
+  const binHz = Fs / N;
+  let alpha = 0;
+  let beta = 0;
+  for (let i = 0; i < N/2; i++) {
+    const freq = i * binHz;
+    if (freq >= 8 && freq <= 13)
+      alpha += powers[i];
+    if (freq >= 13 && freq <= 30)
+      beta += powers[i];
+  }
+  return { alpha, beta };
+}
 
-  const mags = re.map((r, i) => Math.sqrt(r*r + im[i]*im[i])) / N;
+  const powers = re.map((r, i) => (r*r + im[i]*im[i]) / N);
   // frequency bins
   const sampleRate = 128; // your current system rate
   const binHz = sampleRate / N;
@@ -537,10 +558,10 @@ function computeFFTbands(signal) {
   let alpha = 0;
   let beta = 0;
 
-  for (let i = 0; i < mags.length; i++) {
+  for (let i = 0; i < powers.length; i++) {
     const freq = i * binHz;
-    if (freq >= 8 && freq <= 12) alpha += mags[i];
-    if (freq >= 13 && freq <= 30) beta += mags[i];
+    if (freq >= 8 && freq <= 12) alpha += powers[i];
+    if (freq >= 13 && freq <= 30) beta += powers[i];
   }
   return { alpha, beta };
 }
