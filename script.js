@@ -494,47 +494,56 @@ function smoothBand(value, buffer, size = 10) {
 let emgLevel = 50;
 let eegPhase = 0;
 
+let demoEMGLevel = 45;
+
+document.addEventListener("keydown", (e) => {
+
+  if (e.key === "ArrowUp") {
+    demoEMGLevel += 10;
+  }
+
+  if (e.key === "ArrowDown") {
+    demoEMGLevel -= 10;
+  }
+
+  demoEMGLevel = Math.max(5, Math.min(100, demoEMGLevel));
+
+  console.log("EMG LEVEL:", demoEMGLevel);
+});
 
 function processSignal({ time, rawEEG, rawEMG }) {
-  eegPhase += 0.1;
-  // EEG oscillations
-  const alphaWave =
-    20 * Math.sin(2 * Math.PI * 10 * eegPhase);
-
-  const betaWave =
-    35 * Math.sin(2 * Math.PI * 20 * eegPhase);
-  // Synthetic band powers
-  let alpha = 40;
-  let beta = 65;
-
-  // EMG controls emotional state
-  let emg = emgLevel + (Math.random() - 0.5) * 5;
-
-  // Emotional modulation
-  if (emgLevel < 25) {
-    // Sad
-    alpha = 35;
+  const t = Date.now() / 1000;
+  // BIG visible EMG changes
+  const emg =
+    demoEMGLevel +
+    Math.sin(2 * Math.PI * 2 * t) * 8 +
+    (Math.random() - 0.5) * 5;
+  let alpha = 25;
+  let beta = 60;
+  // Emotional states
+  if (demoEMGLevel < 25) {
+    currentEmotion = "Sad";
+    alpha = 40;
     beta = 20;
-  } else if (emgLevel < 50) {
-    // Calm
-    alpha = 50;
+  } else if (demoEMGLevel < 45) {
+    currentEmotion = "Calm";
+    alpha = 55;
     beta = 15;
-
-  } else if (emgLevel < 75) {
-    // Stressed
+  } else if (demoEMGLevel < 70) {
+    currentEmotion = "Stressed";
     alpha = 25;
     beta = 60;
-
   } else {
-    // Extra stressed
+    currentEmotion = "Excited";
     alpha = 15;
     beta = 85;
   }
-  // Realistic raw EEG waveform
+
+  // EEG waveform
   const raw =
-    alphaWave +
-    betaWave +
-    (Math.random() - 0.5) * 10;
+    20 * Math.sin(2 * Math.PI * 10 * t) +
+    10 * Math.sin(2 * Math.PI * 20 * t) +
+    (Math.random() - 0.5) * 8;
 
   updateData(raw, alpha, beta, emg);
 }
@@ -859,18 +868,3 @@ window.addEventListener("load", async () => {
   }
 });
 
-
-document.addEventListener("keydown", (e) => {
-
-  if (e.key === "ArrowUp") {
-    emgLevel += 5;
-  }
-
-  if (e.key === "ArrowDown") {
-    emgLevel -= 5;
-  }
-
-  emgLevel = Math.max(5, Math.min(100, emgLevel));
-
-  console.log("EMG LEVEL:", emgLevel);
-});
