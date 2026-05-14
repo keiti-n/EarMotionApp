@@ -476,7 +476,7 @@ function handleBLE(event) {
 }
 
 let fftBuffer = [];
-const FFT_SIZE = 256; // power of 2, 64 prev, increase resolution to 0.5 Hz
+const FFT_SIZE = 64; // power of 2, 64 prev, increase resolution to 0.5 Hz
 
 let alphaHistory = [];
 let betaHistory = [];
