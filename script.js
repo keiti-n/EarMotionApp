@@ -476,12 +476,24 @@ function handleBLE(event) {
 }
 
 let fftBuffer = [];
-const FFT_SIZE = 64; // power of 2, 64 prev, increase resolution to 0.5 Hz
+const FFT_SIZE = 256; // power of 2, 64 prev, increase resolution to 0.5 Hz
 
+let alphaHistory = [];
+let betaHistory = [];
+
+function smoothBand(value, buffer, size = 10) {
+
+  buffer.push(value);
+
+  if (buffer.length > size)
+    buffer.shift();
+
+  return buffer.reduce((a,b)=>a+b,0) / buffer.length;
+}
 
 function processSignal({ time, rawEEG, rawEMG }) {
   // Remove DC drift
-  const eeg = rawEEG - eegMean(rawEEG);
+  const eeg = rawEEG;
   fftBuffer.push(eeg);
   if (fftBuffer.length > FFT_SIZE)
     fftBuffer.shift();
