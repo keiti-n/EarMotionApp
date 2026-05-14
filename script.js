@@ -491,22 +491,52 @@ function smoothBand(value, buffer, size = 10) {
   return buffer.reduce((a,b)=>a+b,0) / buffer.length;
 }
 
+let emgLevel = 50;
+let eegPhase = 0;
+
+
 function processSignal({ time, rawEEG, rawEMG }) {
-  // Remove DC drift
-  const eeg = rawEEG;
-  fftBuffer.push(eeg);
-  if (fftBuffer.length > FFT_SIZE)
-    fftBuffer.shift();
-  let alpha = 0;
-  let beta = 0;
-  if (fftBuffer.length === FFT_SIZE) {
-    ({ alpha, beta } = computeFFTbands(fftBuffer));
-    // smooth powers only
-    alpha = smoothBand(alpha, alphaHistory);
-    beta  = smoothBand(beta, betaHistory);
+  eegPhase += 0.1;
+  // EEG oscillations
+  const alphaWave =
+    20 * Math.sin(2 * Math.PI * 10 * eegPhase);
+
+  const betaWave =
+    35 * Math.sin(2 * Math.PI * 20 * eegPhase);
+  // Synthetic band powers
+  let alpha = 40;
+  let beta = 65;
+
+  // EMG controls emotional state
+  let emg = emgLevel + (Math.random() - 0.5) * 5;
+
+  // Emotional modulation
+  if (emgLevel < 25) {
+    // Sad
+    alpha = 35;
+    beta = 20;
+  } else if (emgLevel < 50) {
+    // Calm
+    alpha = 50;
+    beta = 15;
+
+  } else if (emgLevel < 75) {
+    // Stressed
+    alpha = 25;
+    beta = 60;
+
+  } else {
+    // Extra stressed
+    alpha = 15;
+    beta = 85;
   }
-  const smoothEMG = smoothSignal(rawEMG, emgBuffer);
-  updateData(eeg, alpha, beta, smoothEMG);
+  // Realistic raw EEG waveform
+  const raw =
+    alphaWave +
+    betaWave +
+    (Math.random() - 0.5) * 10;
+
+  updateData(raw, alpha, beta, emg);
 }
 
 let eegBuffer = []; //Buffer for bandpass
@@ -827,4 +857,20 @@ window.addEventListener("load", async () => {
   if (saved) {
     console.log("Saved device found:", saved);
   }
+});
+
+
+document.addEventListener("keydown", (e) => {
+
+  if (e.key === "ArrowUp") {
+    emgLevel += 5;
+  }
+
+  if (e.key === "ArrowDown") {
+    emgLevel -= 5;
+  }
+
+  emgLevel = Math.max(5, Math.min(100, emgLevel));
+
+  console.log("EMG LEVEL:", emgLevel);
 });
