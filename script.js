@@ -534,22 +534,7 @@ function computeFFTbands(signal) {
       im[k] -= windowed[t] * Math.sin(angle);
     }
   }
-  const powers = re.map((r, i) =>
-    (r*r + im[i]*im[i]) / N
-  );
-  const binHz = Fs / N;
-  let alpha = 0;
-  let beta = 0;
-  for (let i = 0; i < N/2; i++) {
-    const freq = i * binHz;
-    if (freq >= 8 && freq <= 13)
-      alpha += powers[i];
-    if (freq >= 13 && freq <= 30)
-      beta += powers[i];
-  }
-  return { alpha, beta };
-}
-
+  
   const powers = re.map((r, i) => (r*r + im[i]*im[i]) / N);
   // frequency bins
   const sampleRate = 128; // your current system rate
@@ -563,6 +548,7 @@ function computeFFTbands(signal) {
     if (freq >= 8 && freq <= 12) alpha += powers[i];
     if (freq >= 13 && freq <= 30) beta += powers[i];
   }
+  
   return { alpha, beta };
 }
 
