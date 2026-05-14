@@ -322,22 +322,28 @@ function calibrateEMG(emg) {
 }
 
 function updateEmotion(alpha, beta, emg) {
-  // --- Normalize EEG ---
   const total = alpha + beta || 1;
+
   const alphaRatio = alpha / total;
-  const betaRatio  = beta  / total;
-  // --- Normalize EMG ---
-  const safeBaseline = baselineEMG || emg || 1;
-  const emgNorm = emg / safeBaseline;
-  
-  // --- Determine valence (EEG) ---
+  const betaRatio  = beta / total;
+
+  // EEG valence
   let valence;
-  if (alphaRatio > betaRatio) valence = "positive";
-  else valence = "negative";
-  // --- Determine arousal (EMG) ---
+
+  if (alphaRatio >= betaRatio) {
+    valence = "positive";
+  } else {
+    valence = "negative";
+  }
+
+  // EMG arousal using RAW thresholds
   let arousal;
-  if (emgNorm < 1.5) arousal = "low";
-  else arousal = "high";
+    
+  if (emg < 35) {
+    arousal = "low";
+  } else {
+    arousal = "high";
+  }
 
   // --- Combine into emotion ---
   let state;
