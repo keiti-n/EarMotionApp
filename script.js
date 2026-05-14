@@ -247,24 +247,24 @@ function runDemo() {
 
 let dailyEEGData = [];
 const demoEEGData = [
-  {date:"4/18", eeg:42, emotion:"Calm", fluct:12, duration:7},
-  {date:"4/19", eeg:35, emotion:"Stressed", fluct:18, duration:20},
-  {date:"4/20", eeg:50, emotion:"Excited", fluct:9, duration:15},
-  {date:"4/21", eeg:47, emotion:"Calm", fluct:11, duration:27},
-  {date:"4/22", eeg:39, emotion:"Stressed", fluct:8, duration:19},
-  {date:"4/23", eeg:44, emotion:"Excited", fluct:5, duration:4},
-  {date:"4/24", eeg:48, emotion:"Calm", fluct:6, duration:8},
+  {date:"5/08", eeg:42, emotion:"Calm", fluct:12, duration:7},
+  {date:"5/09", eeg:35, emotion:"Stressed", fluct:18, duration:20},
+  {date:"5/10", eeg:50, emotion:"Excited", fluct:9, duration:15},
+  {date:"5/11", eeg:47, emotion:"Calm", fluct:11, duration:27},
+  {date:"5/12", eeg:39, emotion:"Stressed", fluct:8, duration:19},
+  {date:"5/13", eeg:44, emotion:"Excited", fluct:5, duration:4},
+  {date:"5/14", eeg:48, emotion:"Calm", fluct:6, duration:8},
 ];
 
 let dailyEMGData = [];
 const demoEMGData = [
-  {date:"4/18", emg:12, emotion:"Calm", fluct:12, duration:7},
-  {date:"4/19", emg:32, emotion:"Stressed", fluct:18, duration:20},
-  {date:"4/20", emg:21, emotion:"Excited", fluct:9, duration:15},
-  {date:"4/21", emg:14, emotion:"Calm", fluct:11, duration:27},
-  {date:"4/22", emg:36, emotion:"Stressed", fluct:8, duration:19},
-  {date:"4/23", emg:24, emotion:"Excited", fluct:5, duration:4},
-  {date:"4/24", emg:13, emotion:"Calm", fluct:6, duration:8},
+  {date:"5/08", emg:12, emotion:"Calm", fluct:12, duration:7},
+  {date:"5/09", emg:32, emotion:"Stressed", fluct:18, duration:20},
+  {date:"5/10", emg:21, emotion:"Excited", fluct:9, duration:15},
+  {date:"5/11", emg:14, emotion:"Calm", fluct:11, duration:27},
+  {date:"5/12", emg:36, emotion:"Stressed", fluct:8, duration:19},
+  {date:"5/13", emg:24, emotion:"Excited", fluct:5, duration:4},
+  {date:"5/14", emg:13, emotion:"Calm", fluct:6, duration:8},
 ];
 
 // ================= REALTIME =================
